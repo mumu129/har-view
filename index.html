@@ -16,7 +16,6 @@
     z-index: 0; pointer-events: none;
   }
 
-  /* ================= header ================= */
   header {
     position: relative; z-index: 1; padding: 10px 16px;
     background: rgba(20,20,20,.55);
@@ -55,30 +54,13 @@
     border-color: rgba(255,255,255,.06);
     cursor: not-allowed;
   }
-  header button.primary {
-    background: rgba(10,132,255,.85);
-    border-color: rgba(10,132,255,.5);
-    color: #fff;
-  }
+  header button.primary { background: rgba(10,132,255,.85); border-color: rgba(10,132,255,.5); color: #fff; }
   header button.primary:hover:not(:disabled) { background: rgba(10,132,255,1); border-color: rgba(10,132,255,.7); }
-  header button.success {
-    background: rgba(52,199,89,.85);
-    border-color: rgba(52,199,89,.5);
-    color: #fff;
-  }
+  header button.success { background: rgba(52,199,89,.85); border-color: rgba(52,199,89,.5); color: #fff; }
   header button.success:hover:not(:disabled) { background: rgba(52,199,89,1); border-color: rgba(52,199,89,.7); }
-  header button.toggle-active {
-    background: rgba(255,159,10,.85);
-    border-color: rgba(255,159,10,.5);
-    color: #fff;
-  }
+  header button.toggle-active { background: rgba(255,159,10,.85); border-color: rgba(255,159,10,.5); color: #fff; }
   header button.toggle-active:hover:not(:disabled) { background: rgba(255,159,10,1); }
-  header .divider {
-    width: 1px; height: 22px;
-    background: rgba(255,255,255,.12);
-    margin: 0 4px;
-    flex-shrink: 0;
-  }
+  header .divider { width: 1px; height: 22px; background: rgba(255,255,255,.12); margin: 0 4px; flex-shrink: 0; }
   header input[type=file] { display: none; }
   #stats {
     color: rgba(255,255,255,.75); font-size: 12px; margin-left: auto;
@@ -90,14 +72,13 @@
     font-weight: 500;
   }
 
-  /* ================= filter-bar ================= */
   .filter-bar {
     position: relative; z-index: 1; padding: 8px 14px;
     background: rgba(20,20,20,.45); backdrop-filter: blur(14px);
     color: #ddd; border-bottom: 1px solid rgba(255,255,255,.08);
     display: flex; flex-direction: column; gap: 6px;
     transition: max-height .25s ease, padding .25s ease, opacity .2s ease;
-    max-height: 600px; overflow: hidden;
+    max-height: 640px; overflow: hidden;
   }
   .filter-bar.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom: none; opacity: 0; }
   .filter-hint { font-size: 11px; color: rgba(255,255,255,.55); display: flex; align-items: center; gap: 12px; }
@@ -129,7 +110,55 @@
   }
   .reset-btn:hover { border-color: rgba(255,255,255,.5); color: #fff; background: rgba(255,255,255,.12); }
 
-  /* ================= main ================= */
+  /* 搜索行 */
+  .search-wrap {
+    flex: 1; position: relative;
+    display: flex; align-items: center; gap: 10px;
+    max-width: 680px;
+  }
+  #searchInput {
+    flex: 1;
+    padding: 6px 32px 6px 12px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 6px;
+    background: rgba(0,0,0,.35);
+    color: #eee;
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+  }
+  #searchInput:focus { border-color: #4fa3e0; box-shadow: 0 0 0 2px rgba(79,163,224,.2); }
+  #searchInput::placeholder { color: rgba(255,255,255,.3); }
+  .search-clear {
+    position: absolute;
+    right: 8px; top: 50%;
+    transform: translateY(-50%);
+    width: 20px; height: 20px;
+    border: none;
+    background: rgba(255,255,255,.15);
+    color: rgba(255,255,255,.7);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+  .search-clear:hover { background: rgba(255,255,255,.3); color: #fff; }
+  .search-count {
+    font-size: 11.5px;
+    color: #7ddf7d;
+    white-space: nowrap;
+    padding: 0 4px;
+    min-width: 60px;
+  }
+  .search-count.building { color: #ffcc80; }
+  .search-count.empty { color: #ef8a8a; }
+
   main { position: relative; z-index: 1; flex: 1; display: flex; overflow: hidden; }
   aside {
     width: 42%; max-width: 640px; border-right: 1px solid rgba(255,255,255,.08);
@@ -245,6 +274,13 @@
   pre.err { background: rgba(60,20,20,.6); color: #ef9a9a; border-color: rgba(239,83,80,.3); }
   pre.empty { background: rgba(255,255,255,.04); color: rgba(255,255,255,.35); padding: 10px; }
   pre.loading { background: rgba(255,255,255,.04); color: rgba(255,255,255,.5); padding: 10px; font-style: italic; }
+  pre.json-view { line-height: 1.6; }
+  pre.json-view .j-key    { color: #9cdcfe; }
+  pre.json-view .j-string { color: #ce9178; }
+  pre.json-view .j-number { color: #b5cea8; }
+  pre.json-view .j-bool,
+  pre.json-view .j-null   { color: #569cd6; }
+  pre.json-view .j-ts     { color: #6a9955; font-style: italic; }
   details.original-block { margin-bottom: 6px; }
   details.original-block > summary { cursor: pointer; color: #6ab8ef; font-size: 12px; padding: 5px 0; user-select: none; }
   details.original-block > summary:hover { color: #9ad0ff; }
@@ -271,7 +307,6 @@
   .toast.err { border-color: rgba(239,83,80,.5); color: #ef9a9a; }
   @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-  /* ================= 拖拽遮罩 ================= */
   .drag-overlay {
     position: fixed; inset: 0; z-index: 9999;
     background: rgba(10,132,255,.12);
@@ -296,7 +331,6 @@
   .drag-text { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
   .drag-hint { font-size: 12px; color: rgba(255,255,255,.5); }
 
-  /* ================= 模态框 ================= */
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,.6);
     backdrop-filter: blur(6px); z-index: 1500;
@@ -325,10 +359,7 @@
     color: rgba(255,255,255,.5); cursor: pointer; padding: 0 8px; line-height: 1; border-radius: 4px;
   }
   .modal-close:hover { background: rgba(255,255,255,.1); color: #fff; }
-  .modal-tabs {
-    display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,.08);
-    background: rgba(0,0,0,.2);
-  }
+  .modal-tabs { display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.2); }
   .modal-tab {
     padding: 12px 22px; border: none; background: transparent;
     cursor: pointer; font-size: 13px; color: rgba(255,255,255,.5);
@@ -465,6 +496,14 @@
       <span class="kbd">未选</span>
       <button class="reset-btn" id="resetFilterBtn" style="margin-left:auto;">重置过滤</button>
     </div>
+    <div class="filter-row">
+      <span class="label">搜索</span>
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="搜索 HAR 中任意位置的字符串（不区分大小写）…">
+        <span class="search-count" id="searchCount"></span>
+        <button class="search-clear" id="searchClearBtn">×</button>
+      </div>
+    </div>
     <div class="filter-row"><span class="label">方法</span><div id="methodGroup" class="tag-group"></div></div>
     <div class="filter-row"><span class="label">类型</span><div id="typeGroup" class="tag-group"></div></div>
     <div class="filter-row"><span class="label">MIME</span><div id="mimeGroup" class="tag-group"></div></div>
@@ -476,7 +515,6 @@
     <section id="detailPanel"><div class="empty">选择左侧请求查看详情，或将 HAR 文件拖入本页</div></section>
   </main>
 
-  <!-- ================= 解密配置模态框 ================= -->
   <div class="modal-backdrop" id="configModal" style="display:none;">
     <div class="modal">
       <div class="modal-header">
@@ -661,6 +699,96 @@
   }
 
   // ================================================================
+  // 时间戳识别与格式化
+  // ================================================================
+  function detectTimestamp(value) {
+    if (typeof value === 'number') {
+      if (!Number.isInteger(value)) return null;
+      const s = String(value);
+      if (s.length === 10 && s[0] === '1') return 's';
+      if (s.length === 13 && s[0] === '1') return 'ms';
+      return null;
+    }
+    if (typeof value === 'string') {
+      if (value.length === 10 && /^1\d{9}$/.test(value)) return 's';
+      if (value.length === 13 && /^1\d{12}$/.test(value)) return 'ms';
+      return null;
+    }
+    return null;
+  }
+  function formatTimestamp(value, unit) {
+    const ms = unit === 's' ? Number(value) * 1000 : Number(value);
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) return '';
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ` +
+           `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+  function renderJsonWithTs(data) {
+    const pre = document.createElement('pre');
+    pre.className = 'json-view';
+    function add(str, cls) {
+      if (!str) return;
+      if (cls) {
+        const s = document.createElement('span');
+        s.className = cls;
+        s.textContent = str;
+        pre.appendChild(s);
+      } else {
+        pre.appendChild(document.createTextNode(str));
+      }
+    }
+    function walk(v, indent) {
+      const pad = '  '.repeat(indent);
+      if (v === null) { add('null', 'j-null'); return; }
+      if (v === undefined) { add('undefined', 'j-null'); return; }
+      if (typeof v === 'string') {
+        add(JSON.stringify(v), 'j-string');
+        const unit = detectTimestamp(v);
+        if (unit) add(`  /* ${formatTimestamp(v, unit)} */`, 'j-ts');
+        return;
+      }
+      if (typeof v === 'number') {
+        add(String(v), 'j-number');
+        const unit = detectTimestamp(v);
+        if (unit) add(`  /* ${formatTimestamp(v, unit)} */`, 'j-ts');
+        return;
+      }
+      if (typeof v === 'boolean') { add(String(v), 'j-bool'); return; }
+      if (Array.isArray(v)) {
+        if (v.length === 0) { add('[]'); return; }
+        add('[\n');
+        v.forEach((item, i) => {
+          add(pad + '  ');
+          walk(item, indent + 1);
+          if (i < v.length - 1) add(',');
+          add('\n');
+        });
+        add(pad + ']');
+        return;
+      }
+      if (typeof v === 'object') {
+        const keys = Object.keys(v);
+        if (keys.length === 0) { add('{}'); return; }
+        add('{\n');
+        keys.forEach((k, i) => {
+          add(pad + '  ');
+          add(JSON.stringify(k), 'j-key');
+          add(': ');
+          walk(v[k], indent + 1);
+          if (i < keys.length - 1) add(',');
+          add('\n');
+        });
+        add(pad + '}');
+        return;
+      }
+      add(String(v));
+    }
+    walk(data, 0);
+    return pre;
+  }
+
+  // ================================================================
   // 智能解析
   // ================================================================
   function looksLikeBase64(s) {
@@ -696,9 +824,6 @@
     return Object.keys(out).length ? out : null;
   }
 
-  // ================================================================
-  // 内置解码器
-  // ================================================================
   const BUILTIN_DECODERS = {
     raw: { label: '智能解析（form → JSON / URL / Base64）', run: (bytes) => {
       let text; try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { return bytes; }
@@ -727,9 +852,6 @@
     }},
   };
 
-  // ================================================================
-  // 自定义数据（文件 + 会话）
-  // ================================================================
   let fileDecoders = {};
   let fileRules = [];
   let sessionDecoders = {};
@@ -840,8 +962,8 @@
   // ================================================================
   // 状态
   // ================================================================
-  const PAGE_SIZE = 300;   // 每次渲染条数
-  const MAX_AUTO_DECRYPT = 5 * 1024 * 1024;   // 超过 5MB 不自动解密
+  const PAGE_SIZE = 300;
+  const MAX_AUTO_DECRYPT = 5 * 1024 * 1024;
 
   function makeFilter() { return { include: new Set(), exclude: new Set() }; }
   const state = {
@@ -851,11 +973,38 @@
     entryMeta: new Map(),
     renderedCount: 0,
   };
+
+  // 搜索索引（全文小写缓存）
+  const searchIndex = new Map();
+  let searchBuildingPromise = null;
+
+  function getSearchText(idx, entry) {
+    if (searchIndex.has(idx)) return searchIndex.get(idx);
+    let text = '';
+    try { text = JSON.stringify(entry).toLowerCase(); } catch {}
+    searchIndex.set(idx, text);
+    return text;
+  }
+  function buildSearchIndex() {
+    if (searchBuildingPromise) return searchBuildingPromise;
+    if (!state.har || searchIndex.size >= state.har.log.entries.length) return Promise.resolve();
+    searchBuildingPromise = (async () => {
+      const total = state.har.log.entries.length;
+      for (let i = 0; i < total; i++) {
+        getSearchText(i, state.har.log.entries[i]);
+        if (i % 500 === 0) await new Promise(r => setTimeout(r, 0));
+      }
+    })();
+    searchBuildingPromise.finally(() => { searchBuildingPromise = null; });
+    return searchBuildingPromise;
+  }
+
   const $ = (id) => document.getElementById(id);
   const harInput = $('harInput'), stats = $('stats'), toggleFilterBtn = $('toggleFilterBtn');
   const autoAllBtn = $('autoDecryptAllBtn'), exportBtn = $('exportBtn'), exportListBtn = $('exportListBtn');
   const entryList = $('entryList'), detailPanel = $('detailPanel'), filterBar = $('filterBar');
   const entryListAside = $('entryListAside');
+  const searchInput = $('searchInput'), searchCount = $('searchCount'), searchClearBtn = $('searchClearBtn');
 
   const TYPE_LABELS = { js:'JS', xhr:'XHR', css:'CSS', html:'HTML', image:'图片', audio:'音频', video:'视频', font:'字体', text:'文本', other:'其它' };
   const TYPE_ICONS = { image:'🖼', audio:'🔊', video:'🎬' };
@@ -881,9 +1030,6 @@
   function getDomain(entry) { try { return new URL(entry.request.url).hostname || '(无域名)'; } catch { return '(无效 URL)'; } }
   function getEntryTime(entry) { const t = entry.startedDateTime; if (!t) return 0; const ms = new Date(t).getTime(); return isNaN(ms) ? 0 : ms; }
 
-  // ================================================================
-  // 加载 HAR（选择 + 拖拽共用）
-  // ================================================================
   async function loadHarFile(file) {
     const sizeMB = (file.size / 1024 / 1024).toFixed(1);
     detailPanel.innerHTML = `<div class="empty" style="padding-top:80px;">正在读取 ${sizeMB}MB 文件…</div>`;
@@ -901,6 +1047,8 @@
       state.decryptState.clear();
       state.marks.clear();
       state.entryMeta.clear();
+      searchIndex.clear();
+      searchBuildingPromise = null;
       state.currentIndex = -1;
       state.renderedCount = 0;
 
@@ -930,12 +1078,9 @@
     e.target.value = '';
   });
 
-  // ================================================================
   // 拖拽导入
-  // ================================================================
   let dragOverlay = null;
   let dragCounter = 0;
-
   function showDragOverlay() {
     if (!dragOverlay) {
       dragOverlay = document.createElement('div');
@@ -951,12 +1096,8 @@
     }
     dragOverlay.style.display = 'flex';
   }
-  function hideDragOverlay() {
-    if (dragOverlay) dragOverlay.style.display = 'none';
-  }
-  function hasFiles(e) {
-    return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
-  }
+  function hideDragOverlay() { if (dragOverlay) dragOverlay.style.display = 'none'; }
+  function hasFiles(e) { return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files'); }
 
   document.addEventListener('dragenter', (e) => {
     if (!hasFiles(e)) return;
@@ -989,13 +1130,9 @@
     await loadHarFile(file);
   });
 
-  // ================================================================
   // 过滤选项
-  // ================================================================
   function buildFilterOptions() {
     const counts = { method: new Map(), type: new Map(), mime: new Map(), domain: new Map() };
-
-    // 一次性构建 entryMeta 和计数
     state.entryMeta.clear();
     state.har.log.entries.forEach((entry, idx) => {
       const method = (entry.request?.method || 'GET').toUpperCase();
@@ -1003,9 +1140,7 @@
       const mime = getMimeKey(entry);
       const domain = getDomain(entry);
       const time = getEntryTime(entry);
-
       state.entryMeta.set(idx, { method, type, mime, domain, time });
-
       counts.method.set(method, (counts.method.get(method) || 0) + 1);
       counts.type.set(type, (counts.type.get(type) || 0) + 1);
       counts.mime.set(mime, (counts.mime.get(mime) || 0) + 1);
@@ -1057,6 +1192,11 @@
         if (b.dataset.value === '__ALL__') b.classList.add('active');
       });
     });
+    // 搜索一起清空
+    searchInput.value = '';
+    searchClearBtn.style.display = 'none';
+    searchCount.textContent = '';
+    searchCount.className = 'search-count';
   }
   $('resetFilterBtn').addEventListener('click', () => { resetAllFilters(); rebuildEntryList(); });
 
@@ -1065,6 +1205,42 @@
     toggleFilterBtn.textContent = collapsed ? '🔽 展开过滤' : '🔼 收起过滤';
     toggleFilterBtn.classList.toggle('toggle-active', !collapsed);
   });
+
+  // ================================================================
+  // 搜索
+  // ================================================================
+  let searchTimer = null;
+  searchInput.addEventListener('input', () => {
+    searchClearBtn.style.display = searchInput.value ? 'flex' : 'none';
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => doSearch(), 300);
+  });
+  searchClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClearBtn.style.display = 'none';
+    searchCount.textContent = '';
+    searchCount.className = 'search-count';
+    rebuildEntryList();
+  });
+
+  async function doSearch() {
+    const kw = searchInput.value.trim().toLowerCase();
+    if (!kw) {
+      searchCount.textContent = '';
+      searchCount.className = 'search-count';
+      rebuildEntryList();
+      return;
+    }
+    if (state.har && searchIndex.size < state.har.log.entries.length) {
+      searchCount.textContent = '构建索引中…';
+      searchCount.className = 'search-count building';
+      await buildSearchIndex();
+    }
+    rebuildEntryList();
+    const count = state.entries.length;
+    searchCount.textContent = count > 0 ? `匹配 ${count} 条` : '无匹配';
+    searchCount.className = 'search-count' + (count > 0 ? '' : ' empty');
+  }
 
   // ================================================================
   // 过滤 + 排序 + 分页渲染
@@ -1078,6 +1254,7 @@
   function rebuildEntryList() {
     if (!state.har) return;
 
+    const searchKw = searchInput.value.trim().toLowerCase();
     const filtered = [];
     state.har.log.entries.forEach((entry, idx) => {
       const meta = state.entryMeta.get(idx);
@@ -1086,6 +1263,12 @@
       if (!matchDim(meta.type, state.filters.type)) return;
       if (!matchDim(meta.mime, state.filters.mime)) return;
       if (!matchDim(meta.domain, state.filters.domain)) return;
+
+      // 全局搜索（已构建索引时才有值）
+      if (searchKw) {
+        const txt = searchIndex.get(idx);
+        if (!txt || !txt.includes(searchKw)) return;
+      }
 
       filtered.push({
         entry, originalIndex: idx,
@@ -1112,15 +1295,12 @@
       entryList.innerHTML = '';
       state.renderedCount = 0;
     }
-
     if (!state.entries.length) {
       entryList.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(255,255,255,.35);">无匹配请求</div>';
       return;
     }
-
     const start = state.renderedCount;
     const end = Math.min(start + PAGE_SIZE, state.entries.length);
-
     const frag = document.createDocumentFragment();
     for (let i = start; i < end; i++) {
       frag.appendChild(buildListItem(state.entries[i], i));
@@ -1128,7 +1308,6 @@
     entryList.appendChild(frag);
     state.renderedCount = end;
 
-    // 加载更多提示
     let more = document.getElementById('loadMoreTip');
     if (state.renderedCount < state.entries.length) {
       const remain = state.entries.length - state.renderedCount;
@@ -1144,7 +1323,6 @@
       more.remove();
     }
 
-    // 更新统计里的渲染进度
     if (state.entries.length > PAGE_SIZE) {
       const base = stats.textContent.split('（已渲染')[0];
       stats.textContent = `${base}（已渲染 ${state.renderedCount}/${state.entries.length}）`;
@@ -1203,16 +1381,12 @@
     return div;
   }
 
-  // 滚动触底自动加载
   entryListAside.addEventListener('scroll', function () {
     if (this.scrollTop + this.clientHeight >= this.scrollHeight - 100) {
       if (state.renderedCount < state.entries.length) renderList(false);
     }
   });
 
-  // ================================================================
-  // 局部更新条目视觉（避免整列表重渲）
-  // ================================================================
   function updateItemVisual(origIdx) {
     const el = entryList.querySelector(`.entry[data-idx="${origIdx}"]`);
     if (!el) return;
@@ -1230,9 +1404,7 @@
     }
   }
 
-  // ================================================================
   // 右键菜单
-  // ================================================================
   let ctxMenu = null;
   function closeContextMenu() { if (ctxMenu) { ctxMenu.remove(); ctxMenu = null; } }
   document.addEventListener('click', (e) => { if (ctxMenu && !ctxMenu.contains(e.target)) closeContextMenu(); });
@@ -1303,9 +1475,7 @@
 
   const LONG_PRESS_MS = 600;
 
-  // ================================================================
   // 媒体预览
-  // ================================================================
   function buildMediaElement(entry, type) {
     const c = entry.response?.content; if (!c?.text) return null;
     const b64 = c.encoding === 'base64' ? c.text : bytesToBase64(harTextToBytes(c.text, c.encoding || ''));
@@ -1325,9 +1495,7 @@
     return map[ext] || 'application/octet-stream';
   }
 
-  // ================================================================
-  // fetch 生成（Node.js）
-  // ================================================================
+  // fetch 生成
   function extractRequestInfo(entry) {
     const method = (entry.request.method || 'GET').toUpperCase();
     const fullUrl = entry.request.url; const u = new URL(fullUrl);
@@ -1467,15 +1635,12 @@
     return L.join('\n');
   }
 
-  // ================================================================
   // 解密执行
-  // ================================================================
   async function runDecoder(id, bytes, ctx) {
     const d = getAllDecoders()[id];
     if (!d) throw new Error('未知解码方式: ' + id);
     return await d.run(bytes, ctx);
   }
-
   async function runDecryptForItem(item, ds) {
     const { entry, rule } = item;
     const reqId = ds.reqDecoder || rule?.reqDecoder || 'raw';
@@ -1518,15 +1683,12 @@
 
     await Promise.all(jobs);
   }
-
   function getDecryptState(i) {
     if (!state.decryptState.has(i)) state.decryptState.set(i, { reqDecoder: '', reqResult: null, reqError: null, resDecoder: '', resResult: null, resError: null, autoRan: false, loading: false });
     return state.decryptState.get(i);
   }
 
-  // ================================================================
   // 详情
-  // ================================================================
   function renderDetail() {
     if (state.currentIndex < 0 || !state.entries[state.currentIndex]) { detailPanel.innerHTML = '<div class="empty">选择左侧请求查看详情，或将 HAR 文件拖入本页</div>'; return; }
     const item = state.entries[state.currentIndex];
@@ -1618,11 +1780,27 @@
     return null;
   }
   function buildParamsSection(title, obj) {
-    const w = document.createElement('div');
-    const t = document.createElement('div'); t.className = 'section-title'; t.textContent = title; w.appendChild(t);
-    const pre = document.createElement('pre'); pre.textContent = JSON.stringify(obj, null, 2); w.appendChild(pre);
-    return w;
-  }
+  const w = document.createElement('div');
+  const t = document.createElement('div'); t.className = 'section-title'; t.textContent = title; w.appendChild(t);
+
+  // 用带时间戳注释的 JSON 渲染
+  w.appendChild(renderJsonWithTs(obj));
+
+  // 复制原始 JSON 按钮
+  const copyBtn = document.createElement('button');
+  copyBtn.textContent = '复制原始 JSON';
+  copyBtn.style.cssText = 'margin-top:8px;padding:5px 12px;border:1px solid rgba(90,170,230,.5);background:rgba(14,99,156,.3);color:#9ad0ff;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;';
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(obj, null, 2));
+      copyBtn.textContent = '已复制';
+      setTimeout(() => copyBtn.textContent = '复制原始 JSON', 1500);
+    } catch { copyBtn.textContent = '复制失败'; }
+  });
+  w.appendChild(copyBtn);
+
+  return w;
+}
   function buildEmptySection(title, text) {
     const w = document.createElement('div');
     const t = document.createElement('div'); t.className = 'section-title'; t.textContent = title; w.appendChild(t);
@@ -1660,22 +1838,43 @@
     else if (error) { const p = document.createElement('pre'); p.className = 'err'; p.textContent = error; w.appendChild(p); }
     else if (result === null || result === undefined) { const p = document.createElement('pre'); p.className = 'empty'; p.textContent = '（无结果，可切换下拉框重试）'; w.appendChild(p); }
     else {
-      const disp = bytesToDisplay(result);
-      const pre = document.createElement('pre'); pre.textContent = disp.text; w.appendChild(pre);
-      const btn = document.createElement('button'); btn.textContent = '复制结果';
-      btn.style.cssText = 'margin-top:8px;padding:5px 12px;border:1px solid rgba(90,170,230,.5);background:rgba(14,99,156,.3);color:#9ad0ff;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;';
-      btn.addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(disp.text); btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制结果', 1500); }
-        catch { btn.textContent = '复制失败'; }
-      });
-      w.appendChild(btn);
+      const isObj = result !== null && typeof result === 'object'
+                 && !(result instanceof Uint8Array) && !(result instanceof ArrayBuffer);
+      if (isObj) {
+        w.appendChild(renderJsonWithTs(result));
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = '复制原始 JSON';
+        copyBtn.style.cssText = 'margin-top:8px;padding:5px 12px;border:1px solid rgba(90,170,230,.5);background:rgba(14,99,156,.3);color:#9ad0ff;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;';
+        copyBtn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+            copyBtn.textContent = '已复制';
+            setTimeout(() => copyBtn.textContent = '复制原始 JSON', 1500);
+          } catch { copyBtn.textContent = '复制失败'; }
+        });
+        w.appendChild(copyBtn);
+      } else {
+        const disp = bytesToDisplay(result);
+        const pre = document.createElement('pre');
+        pre.textContent = disp.text;
+        w.appendChild(pre);
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = '复制结果';
+        copyBtn.style.cssText = 'margin-top:8px;padding:5px 12px;border:1px solid rgba(90,170,230,.5);background:rgba(14,99,156,.3);color:#9ad0ff;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;';
+        copyBtn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(disp.text);
+            copyBtn.textContent = '已复制';
+            setTimeout(() => copyBtn.textContent = '复制结果', 1500);
+          } catch { copyBtn.textContent = '复制失败'; }
+        });
+        w.appendChild(copyBtn);
+      }
     }
     return w;
   }
 
-  // ================================================================
   // 批量解密
-  // ================================================================
   autoAllBtn.addEventListener('click', async () => {
     if (!state.har) return;
     autoAllBtn.disabled = true; autoAllBtn.textContent = '⏳ 处理中…';
@@ -1692,9 +1891,7 @@
     alert(`命中规则 ${total} 条，已处理完成。`);
   });
 
-  // ================================================================
-  // 导出 HAR
-  // ================================================================
+  // 导出
   function applyDecryptToHar(harObj) {
     let count = 0;
     for (const [origIdx, ds] of state.decryptState) {
@@ -1734,9 +1931,7 @@
     if ('size' in c) c.size = new Blob([c.text]).size;
   }
 
-  // ================================================================
   // 配置模态框
-  // ================================================================
   const configModal = $('configModal'), modalCloseBtn = $('modalCloseBtn');
   const addDecoderBtn = $('addDecoderBtn'), addRuleBtn = $('addRuleBtn');
   const decoderList = $('decoderList'), ruleList = $('ruleList');
@@ -2052,7 +2247,6 @@
     catch { showToast('复制失败', 'err'); }
   });
 
-  // 初始化
   toggleFilterBtn.disabled = true;
   autoAllBtn.disabled = true;
   exportBtn.disabled = true;
