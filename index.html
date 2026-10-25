@@ -5,7 +5,7 @@
 <title>HAR 解密查看器</title>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; font-family: -apple-system, "Segoe UI", sans-serif; font-size: 13px; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 13px; }
   body {
     display: flex; flex-direction: column;
     background: #1a1a1a url('https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/e94b1e49-c518-40d6-98e3-dffab6cc370d.avif') center/cover no-repeat fixed;
@@ -15,6 +15,8 @@
     background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.4) 30%, rgba(0,0,0,.55));
     z-index: 0; pointer-events: none;
   }
+
+  /* ================= header ================= */
   header {
     position: relative; z-index: 1; padding: 10px 16px;
     background: rgba(20,20,20,.55);
@@ -26,36 +28,69 @@
   }
   header button, header label.file-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(255,255,255,.14); color: #fff;
-    border: 1px solid rgba(255,255,255,.22);
-    padding: 7px 14px; border-radius: 8px; cursor: pointer;
-    font-size: 12.5px; font-weight: 500; white-space: nowrap;
-    backdrop-filter: blur(8px); transition: all .18s ease;
-    user-select: none; line-height: 1;
+    height: 36px; padding: 0 14px;
+    background: rgba(255,255,255,.1);
+    color: #eee;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease;
+    user-select: none;
+    line-height: 1;
   }
   header button:hover:not(:disabled), header label.file-btn:hover {
-    background: rgba(255,255,255,.24); border-color: rgba(255,255,255,.38);
-    transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    background: rgba(255,255,255,.18);
+    border-color: rgba(255,255,255,.26);
   }
-  header button:active:not(:disabled) { transform: translateY(0); }
+  header button:active:not(:disabled), header label.file-btn:active {
+    background: rgba(255,255,255,.06);
+  }
   header button:disabled {
-    background: rgba(255,255,255,.05); color: rgba(255,255,255,.35);
-    border-color: rgba(255,255,255,.1); cursor: not-allowed; transform: none;
+    background: rgba(255,255,255,.03);
+    color: rgba(255,255,255,.28);
+    border-color: rgba(255,255,255,.06);
+    cursor: not-allowed;
   }
-  header button.primary { background: rgba(14,99,156,.75); border-color: rgba(90,170,230,.5); }
-  header button.primary:hover:not(:disabled) { background: rgba(20,120,190,.85); }
-  header button.success { background: rgba(34,140,60,.75); border-color: rgba(90,200,120,.5); }
-  header button.success:hover:not(:disabled) { background: rgba(40,160,70,.85); }
-  header button.toggle-active { background: rgba(217,119,6,.8); border-color: rgba(255,180,80,.6); }
-  header button.toggle-active:hover:not(:disabled) { background: rgba(235,135,20,.9); }
-  header .icon { font-size: 14px; }
+  header button.primary {
+    background: rgba(10,132,255,.85);
+    border-color: rgba(10,132,255,.5);
+    color: #fff;
+  }
+  header button.primary:hover:not(:disabled) { background: rgba(10,132,255,1); border-color: rgba(10,132,255,.7); }
+  header button.success {
+    background: rgba(52,199,89,.85);
+    border-color: rgba(52,199,89,.5);
+    color: #fff;
+  }
+  header button.success:hover:not(:disabled) { background: rgba(52,199,89,1); border-color: rgba(52,199,89,.7); }
+  header button.toggle-active {
+    background: rgba(255,159,10,.85);
+    border-color: rgba(255,159,10,.5);
+    color: #fff;
+  }
+  header button.toggle-active:hover:not(:disabled) { background: rgba(255,159,10,1); }
+  header .divider {
+    width: 1px; height: 22px;
+    background: rgba(255,255,255,.12);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
   header input[type=file] { display: none; }
   #stats {
     color: rgba(255,255,255,.75); font-size: 12px; margin-left: auto;
-    padding: 5px 12px; background: rgba(0,0,0,.35);
-    border-radius: 8px; border: 1px solid rgba(255,255,255,.1);
+    padding: 6px 12px;
+    background: rgba(0,0,0,.35);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.1);
     backdrop-filter: blur(8px);
+    font-weight: 500;
   }
+
+  /* ================= filter-bar ================= */
   .filter-bar {
     position: relative; z-index: 1; padding: 8px 14px;
     background: rgba(20,20,20,.45); backdrop-filter: blur(14px);
@@ -77,6 +112,7 @@
     background: rgba(255,255,255,.06); color: rgba(255,255,255,.7);
     border-radius: 5px; cursor: pointer; font-size: 11px;
     white-space: nowrap; user-select: none; transition: all .12s;
+    font-family: inherit;
   }
   .tag-btn:hover { border-color: rgba(255,255,255,.4); color: #fff; background: rgba(255,255,255,.12); }
   .tag-btn.all-btn { border-color: rgba(90,170,230,.6); color: rgba(150,210,255,.9); }
@@ -89,19 +125,24 @@
     padding: 4px 10px; border: 1px solid rgba(255,255,255,.22);
     background: rgba(255,255,255,.06); color: rgba(255,255,255,.75);
     border-radius: 5px; cursor: pointer; font-size: 12px;
+    font-family: inherit;
   }
   .reset-btn:hover { border-color: rgba(255,255,255,.5); color: #fff; background: rgba(255,255,255,.12); }
+
+  /* ================= main ================= */
   main { position: relative; z-index: 1; flex: 1; display: flex; overflow: hidden; }
   aside {
     width: 42%; max-width: 640px; border-right: 1px solid rgba(255,255,255,.08);
     overflow-y: auto; background: rgba(20,20,20,.4);
     backdrop-filter: blur(10px);
+    contain: layout style;
   }
   #entryList .entry {
     padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.06);
     cursor: pointer; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
     user-select: none; color: #ddd; transition: background-color .15s, box-shadow .15s;
     border-left: 3px solid transparent;
+    contain: content;
   }
   #entryList .entry:hover { background: rgba(255,255,255,.08); }
   #entryList .entry.active { border-left-color: #4fa3e0; background: rgba(14,99,156,.25); box-shadow: inset 0 0 0 1px rgba(79,163,224,.4); }
@@ -130,9 +171,10 @@
     font-weight: bold; padding: 2px 8px; border-radius: 4px; color: #fff;
     font-size: 11px; min-width: 54px; text-align: center;
     letter-spacing: .5px; background: #6b7280;
+    font-family: monospace;
   }
   .method.method-GET { background: #2f855a; }
-  .method.method-POST { background: #d97706; font-weight: 900; padding: 3px 10px; box-shadow: 0 0 0 2px rgba(20,20,20,.8) inset, 0 0 0 3px #d97706 inset; }
+  .method.method-POST { background: #d97706; padding: 3px 10px; box-shadow: 0 0 0 2px rgba(20,20,20,.8) inset, 0 0 0 3px #d97706 inset; }
   .method.method-PUT { background: #2563eb; }
   .method.method-DELETE { background: #dc2626; }
   .method.method-PATCH { background: #7c3aed; }
@@ -143,6 +185,7 @@
     backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.15);
     border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,.5);
     padding: 8px; min-width: 190px; font-size: 12px;
+    font-family: inherit;
   }
   .context-menu .ctx-row {
     display: flex; gap: 6px; align-items: center;
@@ -166,6 +209,7 @@
     padding: 7px 10px; border: none; background: transparent;
     cursor: pointer; font-size: 12px; color: #ddd;
     border-radius: 4px; margin-top: 2px;
+    font-family: inherit;
   }
   .context-menu .ctx-btn:hover { background: rgba(255,255,255,.1); }
   .context-menu .ctx-btn.danger { color: #ef8a8a; }
@@ -186,6 +230,7 @@
   .toolbar select {
     padding: 5px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
     background: rgba(30,30,30,.8); color: #ddd; min-width: 260px; font-size: 12px;
+    font-family: inherit;
   }
   .toolbar select option { background: #222; color: #ddd; }
   .tag { display: inline-block; padding: 2px 8px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); border-radius: 4px; font-size: 11px; }
@@ -220,17 +265,45 @@
     box-shadow: 0 8px 32px rgba(0,0,0,.5);
     border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(16px);
     animation: toastIn .2s ease;
+    font-family: inherit;
   }
   .toast.ok { border-color: rgba(76,175,80,.5); color: #a5d6a7; }
   .toast.err { border-color: rgba(239,83,80,.5); color: #ef9a9a; }
   @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+  /* ================= 拖拽遮罩 ================= */
+  .drag-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(10,132,255,.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    animation: fadeIn .12s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .drag-overlay-inner {
+    background: rgba(20,20,20,.85);
+    border: 2px dashed rgba(90,170,230,.7);
+    border-radius: 20px;
+    padding: 48px 64px;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 24px 80px rgba(0,0,0,.5), 0 0 0 8px rgba(10,132,255,.15);
+    font-family: inherit;
+  }
+  .drag-icon { font-size: 48px; margin-bottom: 16px; line-height: 1; }
+  .drag-text { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .drag-hint { font-size: 12px; color: rgba(255,255,255,.5); }
+
+  /* ================= 模态框 ================= */
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,.6);
     backdrop-filter: blur(6px); z-index: 1500;
     display: flex; align-items: center; justify-content: center;
-    animation: fadeIn .15s ease;
+    animation: fadeIn2 .15s ease;
   }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeIn2 { from { opacity: 0; } to { opacity: 1; } }
   .modal {
     background: rgba(28,28,30,.97); color: #e0e0e0;
     width: 860px; max-width: 94vw; max-height: 90vh;
@@ -238,6 +311,7 @@
     border: 1px solid rgba(255,255,255,.12);
     display: flex; flex-direction: column; overflow: hidden;
     animation: modalIn .2s ease;
+    font-family: inherit;
   }
   @keyframes modalIn { from { transform: scale(.96) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
   .modal-header {
@@ -260,6 +334,7 @@
     cursor: pointer; font-size: 13px; color: rgba(255,255,255,.5);
     border-bottom: 2px solid transparent; font-weight: 500;
     transition: all .15s;
+    font-family: inherit;
   }
   .modal-tab:hover { color: #9ad0ff; background: rgba(255,255,255,.04); }
   .modal-tab.active { color: #6ab8ef; border-bottom-color: #4fa3e0; background: rgba(14,99,156,.1); }
@@ -278,6 +353,7 @@
     border: 1px solid rgba(90,170,230,.5);
     padding: 7px 16px; border-radius: 6px; cursor: pointer;
     font-size: 12.5px; font-weight: 500; transition: all .15s;
+    font-family: inherit;
   }
   .btn-primary:hover { background: rgba(20,120,190,.95); }
   .btn-secondary {
@@ -285,6 +361,7 @@
     color: rgba(255,255,255,.8);
     padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 12.5px;
     transition: all .15s;
+    font-family: inherit;
   }
   .btn-secondary:hover { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.3); color: #fff; }
   .config-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
@@ -321,6 +398,7 @@
     padding: 5px 12px; border: 1px solid rgba(255,255,255,.18);
     background: rgba(255,255,255,.06); color: rgba(255,255,255,.75);
     border-radius: 5px; cursor: pointer; font-size: 11.5px; transition: all .12s;
+    font-family: inherit;
   }
   .config-item-actions button:hover { border-color: rgba(90,170,230,.6); color: #9ad0ff; background: rgba(14,99,156,.2); }
   .config-item-actions button.danger { color: #ef9a9a; border-color: rgba(239,83,80,.3); }
@@ -334,6 +412,7 @@
   .form-row input[type=text], .form-row select {
     width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 6px;
     font-size: 12.5px; color: #eee; background: rgba(0,0,0,.3); transition: border-color .15s;
+    font-family: inherit;
   }
   .form-row input[type=text]:focus, .form-row select:focus { outline: none; border-color: #4fa3e0; box-shadow: 0 0 0 2px rgba(79,163,224,.2); }
   .form-row select option { background: #222; color: #eee; }
@@ -363,12 +442,17 @@
 </head>
 <body>
   <header>
-    <label class="file-btn"><span class="icon">📂</span>选择 HAR<input type="file" id="harInput" accept=".har,.json,application/json"></label>
-    <button id="configBtn"><span class="icon">⚙</span>解密配置</button>
-    <button id="toggleFilterBtn" class="secondary" disabled><span class="icon">🔽</span>展开过滤</button>
-    <button id="autoDecryptAllBtn" class="secondary" disabled><span class="icon">🔓</span>批量解密</button>
-    <button id="exportBtn" class="primary" disabled><span class="icon">💾</span>导出解密 HAR</button>
-    <button id="exportListBtn" class="success" disabled><span class="icon">📤</span>导出筛选 HAR</button>
+    <label class="file-btn">
+      📂 选择 HAR
+      <input type="file" id="harInput" accept=".har,.json,application/json">
+    </label>
+    <button id="configBtn">⚙️ 解密配置</button>
+    <span class="divider"></span>
+    <button id="toggleFilterBtn" disabled>🔽 展开过滤</button>
+    <button id="autoDecryptAllBtn" disabled>🔓 批量解密</button>
+    <span class="divider"></span>
+    <button id="exportBtn" class="primary" disabled>💾 导出解密 HAR</button>
+    <button id="exportListBtn" class="success" disabled>📤 导出筛选 HAR</button>
     <span id="stats">未加载</span>
   </header>
 
@@ -388,15 +472,15 @@
   </div>
 
   <main>
-    <aside><div id="entryList"></div></aside>
-    <section id="detailPanel"><div class="empty">选择左侧请求查看详情</div></section>
+    <aside id="entryListAside"><div id="entryList"></div></aside>
+    <section id="detailPanel"><div class="empty">选择左侧请求查看详情，或将 HAR 文件拖入本页</div></section>
   </main>
 
   <!-- ================= 解密配置模态框 ================= -->
   <div class="modal-backdrop" id="configModal" style="display:none;">
     <div class="modal">
       <div class="modal-header">
-        <h2>⚙ 解密配置</h2>
+        <h2>⚙️ 解密配置</h2>
         <button class="modal-close" id="modalCloseBtn">×</button>
       </div>
       <div class="modal-tabs">
@@ -499,7 +583,7 @@
           <div class="panel-toolbar">
             <button class="btn-primary" id="exportDecodersBtn">生成 decoders.js 片段</button>
             <button class="btn-primary" id="exportRulesBtn">生成 rules.js 片段</button>
-            <button class="btn-secondary" id="copyExportBtn">复制到剪贴板</button>
+            <button class="btn-secondary" id="copyExportBtn">📋 复制到剪贴板</button>
           </div>
           <div class="hint" style="margin-bottom:10px;color:rgba(255,255,255,.5);">
             <div style="margin-bottom:4px;">
@@ -646,9 +730,9 @@
   // ================================================================
   // 自定义数据（文件 + 会话）
   // ================================================================
-  let fileDecoders = {};       // 来自 decoders.js
-  let fileRules = [];          // 来自 rules.js
-  let sessionDecoders = {};    // 页面内临时（内存）
+  let fileDecoders = {};
+  let fileRules = [];
+  let sessionDecoders = {};
   let sessionRules = [];
 
   const _compiledFns = new Map();
@@ -756,16 +840,22 @@
   // ================================================================
   // 状态
   // ================================================================
+  const PAGE_SIZE = 300;   // 每次渲染条数
+  const MAX_AUTO_DECRYPT = 5 * 1024 * 1024;   // 超过 5MB 不自动解密
+
   function makeFilter() { return { include: new Set(), exclude: new Set() }; }
   const state = {
     har: null, entries: [], currentIndex: -1,
     decryptState: new Map(), marks: new Map(),
     filters: { method: makeFilter(), type: makeFilter(), mime: makeFilter(), domain: makeFilter() },
+    entryMeta: new Map(),
+    renderedCount: 0,
   };
   const $ = (id) => document.getElementById(id);
   const harInput = $('harInput'), stats = $('stats'), toggleFilterBtn = $('toggleFilterBtn');
   const autoAllBtn = $('autoDecryptAllBtn'), exportBtn = $('exportBtn'), exportListBtn = $('exportListBtn');
   const entryList = $('entryList'), detailPanel = $('detailPanel'), filterBar = $('filterBar');
+  const entryListAside = $('entryListAside');
 
   const TYPE_LABELS = { js:'JS', xhr:'XHR', css:'CSS', html:'HTML', image:'图片', audio:'音频', video:'视频', font:'字体', text:'文本', other:'其它' };
   const TYPE_ICONS = { image:'🖼', audio:'🔊', video:'🎬' };
@@ -792,17 +882,136 @@
   function getEntryTime(entry) { const t = entry.startedDateTime; if (!t) return 0; const ms = new Date(t).getTime(); return isNaN(ms) ? 0 : ms; }
 
   // ================================================================
+  // 加载 HAR（选择 + 拖拽共用）
+  // ================================================================
+  async function loadHarFile(file) {
+    const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+    detailPanel.innerHTML = `<div class="empty" style="padding-top:80px;">正在读取 ${sizeMB}MB 文件…</div>`;
+    await new Promise(r => setTimeout(r, 30));
+
+    try {
+      const text = await file.text();
+      detailPanel.innerHTML = `<div class="empty" style="padding-top:80px;">正在解析 ${sizeMB}MB JSON…</div>`;
+      await new Promise(r => setTimeout(r, 30));
+
+      const har = JSON.parse(text);
+      if (!har.log?.entries) throw new Error('不是有效的 HAR 文件');
+
+      state.har = har;
+      state.decryptState.clear();
+      state.marks.clear();
+      state.entryMeta.clear();
+      state.currentIndex = -1;
+      state.renderedCount = 0;
+
+      detailPanel.innerHTML = `<div class="empty" style="padding-top:80px;">正在构建索引…</div>`;
+      await new Promise(r => setTimeout(r, 30));
+
+      resetAllFilters();
+      buildFilterOptions();
+      rebuildEntryList();
+      renderDetail();
+
+      toggleFilterBtn.disabled = false;
+      autoAllBtn.disabled = false;
+      exportBtn.disabled = false;
+      exportListBtn.disabled = false;
+      showToast(`已加载 ${file.name}（${har.log.entries.length} 条）`, 'ok');
+    } catch (err) {
+      detailPanel.innerHTML = '<div class="empty">选择左侧请求查看详情，或将 HAR 文件拖入本页</div>';
+      alert('读取 HAR 失败: ' + err.message);
+    }
+  }
+
+  harInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await loadHarFile(file);
+    e.target.value = '';
+  });
+
+  // ================================================================
+  // 拖拽导入
+  // ================================================================
+  let dragOverlay = null;
+  let dragCounter = 0;
+
+  function showDragOverlay() {
+    if (!dragOverlay) {
+      dragOverlay = document.createElement('div');
+      dragOverlay.className = 'drag-overlay';
+      dragOverlay.innerHTML = `
+        <div class="drag-overlay-inner">
+          <div class="drag-icon">📥</div>
+          <div class="drag-text">松开鼠标，自动导入 HAR 文件</div>
+          <div class="drag-hint">支持 .har / .json</div>
+        </div>
+      `;
+      document.body.appendChild(dragOverlay);
+    }
+    dragOverlay.style.display = 'flex';
+  }
+  function hideDragOverlay() {
+    if (dragOverlay) dragOverlay.style.display = 'none';
+  }
+  function hasFiles(e) {
+    return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+  }
+
+  document.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragCounter++;
+    if (dragCounter === 1) showDragOverlay();
+  });
+  document.addEventListener('dragover', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  document.addEventListener('dragleave', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) { dragCounter = 0; hideDragOverlay(); }
+  });
+  document.addEventListener('drop', async (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragCounter = 0;
+    hideDragOverlay();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!/\.(har|json)$/i.test(file.name) && file.type !== 'application/json') {
+      showToast('请拖入 .har 或 .json 文件', 'err');
+      return;
+    }
+    await loadHarFile(file);
+  });
+
+  // ================================================================
   // 过滤选项
   // ================================================================
   function buildFilterOptions() {
     const counts = { method: new Map(), type: new Map(), mime: new Map(), domain: new Map() };
-    state.har.log.entries.forEach(entry => {
-      const m = (entry.request?.method || 'GET').toUpperCase();
-      counts.method.set(m, (counts.method.get(m) || 0) + 1);
-      const t = classifyEntry(entry); counts.type.set(t, (counts.type.get(t) || 0) + 1);
-      const mk = getMimeKey(entry); counts.mime.set(mk, (counts.mime.get(mk) || 0) + 1);
-      const d = getDomain(entry); counts.domain.set(d, (counts.domain.get(d) || 0) + 1);
+
+    // 一次性构建 entryMeta 和计数
+    state.entryMeta.clear();
+    state.har.log.entries.forEach((entry, idx) => {
+      const method = (entry.request?.method || 'GET').toUpperCase();
+      const type = classifyEntry(entry);
+      const mime = getMimeKey(entry);
+      const domain = getDomain(entry);
+      const time = getEntryTime(entry);
+
+      state.entryMeta.set(idx, { method, type, mime, domain, time });
+
+      counts.method.set(method, (counts.method.get(method) || 0) + 1);
+      counts.type.set(type, (counts.type.get(type) || 0) + 1);
+      counts.mime.set(mime, (counts.mime.get(mime) || 0) + 1);
+      counts.domain.set(domain, (counts.domain.get(domain) || 0) + 1);
     });
+
     const render = (gid, items) => {
       const g = document.getElementById(gid); g.innerHTML = '';
       const all = document.createElement('button');
@@ -851,51 +1060,174 @@
   }
   $('resetFilterBtn').addEventListener('click', () => { resetAllFilters(); rebuildEntryList(); });
 
-  // ================================================================
-  // 加载 HAR
-  // ================================================================
-  harInput.addEventListener('change', async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    try {
-      const har = JSON.parse(await file.text());
-      if (!har.log?.entries) throw new Error('不是有效的 HAR 文件');
-      state.har = har; state.decryptState.clear(); state.marks.clear(); state.currentIndex = -1;
-      resetAllFilters(); buildFilterOptions(); rebuildEntryList(); renderDetail();
-      toggleFilterBtn.disabled = false; autoAllBtn.disabled = false; exportBtn.disabled = false; exportListBtn.disabled = false;
-    } catch (err) { alert('读取 HAR 失败: ' + err.message); }
-  });
-
   toggleFilterBtn.addEventListener('click', () => {
     const collapsed = filterBar.classList.toggle('collapsed');
-    toggleFilterBtn.innerHTML = collapsed ? '<span class="icon">🔽</span>展开过滤' : '<span class="icon">🔼</span>收起过滤';
+    toggleFilterBtn.textContent = collapsed ? '🔽 展开过滤' : '🔼 收起过滤';
     toggleFilterBtn.classList.toggle('toggle-active', !collapsed);
   });
 
   // ================================================================
-  // 过滤 + 排序
+  // 过滤 + 排序 + 分页渲染
   // ================================================================
   function matchDim(value, f) {
     if (f.include.size > 0 && !f.include.has(value)) return false;
     if (f.exclude.has(value)) return false;
     return true;
   }
+
   function rebuildEntryList() {
     if (!state.har) return;
+
     const filtered = [];
     state.har.log.entries.forEach((entry, idx) => {
-      const url = entry.request?.url || '';
-      const method = (entry.request?.method || 'GET').toUpperCase();
-      const type = classifyEntry(entry); const mime = getMimeKey(entry); const domain = getDomain(entry);
-      if (!matchDim(method, state.filters.method)) return;
-      if (!matchDim(type, state.filters.type)) return;
-      if (!matchDim(mime, state.filters.mime)) return;
-      if (!matchDim(domain, state.filters.domain)) return;
-      filtered.push({ entry, originalIndex: idx, url, method, type, status: entry.response?.status || 0, time: getEntryTime(entry), rule: matchRule(url) });
+      const meta = state.entryMeta.get(idx);
+      if (!meta) return;
+      if (!matchDim(meta.method, state.filters.method)) return;
+      if (!matchDim(meta.type, state.filters.type)) return;
+      if (!matchDim(meta.mime, state.filters.mime)) return;
+      if (!matchDim(meta.domain, state.filters.domain)) return;
+
+      filtered.push({
+        entry, originalIndex: idx,
+        url: entry.request?.url || '',
+        method: meta.method, type: meta.type,
+        status: entry.response?.status || 0,
+        time: meta.time,
+        rule: matchRule(entry.request?.url || ''),
+      });
     });
     filtered.sort((a, b) => b.time - a.time);
-    state.entries = filtered; renderList();
-    const total = state.har.log.entries.length; const shown = filtered.length;
-    stats.textContent = shown === total ? `共 ${total} 条` : `共 ${total} 条 / 显示 ${shown} 条（已过滤 ${total - shown} 条）`;
+    state.entries = filtered;
+    renderList(true);
+
+    const total = state.har.log.entries.length;
+    const shown = filtered.length;
+    stats.textContent = shown === total
+      ? `共 ${total} 条`
+      : `共 ${total} 条 / 显示 ${shown} 条（已过滤 ${total - shown} 条）`;
+  }
+
+  function renderList(reset) {
+    if (reset) {
+      entryList.innerHTML = '';
+      state.renderedCount = 0;
+    }
+
+    if (!state.entries.length) {
+      entryList.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(255,255,255,.35);">无匹配请求</div>';
+      return;
+    }
+
+    const start = state.renderedCount;
+    const end = Math.min(start + PAGE_SIZE, state.entries.length);
+
+    const frag = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+      frag.appendChild(buildListItem(state.entries[i], i));
+    }
+    entryList.appendChild(frag);
+    state.renderedCount = end;
+
+    // 加载更多提示
+    let more = document.getElementById('loadMoreTip');
+    if (state.renderedCount < state.entries.length) {
+      const remain = state.entries.length - state.renderedCount;
+      if (!more) {
+        more = document.createElement('div');
+        more.id = 'loadMoreTip';
+        more.style.cssText = 'padding:14px;text-align:center;color:rgba(255,255,255,.5);cursor:pointer;border-top:1px solid rgba(255,255,255,.1);font-size:12px;';
+        more.addEventListener('click', () => renderList(false));
+        entryList.appendChild(more);
+      }
+      more.textContent = `已渲染 ${state.renderedCount} / ${state.entries.length}，继续滚动或点击加载更多（还剩 ${remain} 条）`;
+    } else if (more) {
+      more.remove();
+    }
+
+    // 更新统计里的渲染进度
+    if (state.entries.length > PAGE_SIZE) {
+      const base = stats.textContent.split('（已渲染')[0];
+      stats.textContent = `${base}（已渲染 ${state.renderedCount}/${state.entries.length}）`;
+    }
+  }
+
+  function buildListItem(item, i) {
+    const div = document.createElement('div');
+    const mark = state.marks.get(item.originalIndex);
+    let cls = 'entry';
+    if (i === state.currentIndex) cls += ' active';
+    if (mark?.color) cls += ' marked-' + mark.color;
+    div.className = cls;
+    div.dataset.idx = item.originalIndex;
+
+    const sc = item.status >= 200 && item.status < 300 ? 'ok' : item.status >= 400 ? 'err' : '';
+    const icon = TYPE_ICONS[item.type] ? TYPE_ICONS[item.type] + ' ' : '';
+    div.innerHTML = `
+      <span class="method method-${escapeHtml(item.method)}">${escapeHtml(item.method)}</span>
+      <span class="type-tag">${icon}${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>
+      <span class="url" title="${escapeHtml(item.url)}">${escapeHtml(item.url)}</span>
+      <span class="status ${sc}">${item.status || ''}</span>
+      ${mark?.note ? `<div class="entry-note" title="${escapeHtml(mark.note)}">${escapeHtml(mark.note)}</div>` : ''}
+    `;
+
+    let pressTimer = null, longPressed = false;
+    const startPress = () => {
+      longPressed = false; div.classList.add('pressing');
+      pressTimer = setTimeout(async () => {
+        longPressed = true; div.classList.remove('pressing');
+        try {
+          const code = await generateFetchCode(item.entry, item.rule);
+          await navigator.clipboard.writeText(code);
+          showToast('已复制 Node.js 代码', 'ok');
+        } catch (err) { showToast('复制失败: ' + err.message, 'err'); }
+      }, LONG_PRESS_MS);
+    };
+    const cancelPress = () => { clearTimeout(pressTimer); div.classList.remove('pressing'); };
+    div.addEventListener('mousedown', startPress);
+    div.addEventListener('mouseup', cancelPress);
+    div.addEventListener('mouseleave', cancelPress);
+    div.addEventListener('touchstart', (e) => { e.preventDefault(); startPress(); }, { passive: false });
+    div.addEventListener('touchend', cancelPress);
+    div.addEventListener('touchcancel', cancelPress);
+    div.addEventListener('click', () => {
+      if (longPressed) { longPressed = false; return; }
+      state.currentIndex = i;
+      entryList.querySelectorAll('.entry.active').forEach(el => el.classList.remove('active'));
+      div.classList.add('active');
+      renderDetail();
+    });
+    div.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showContextMenu(e.clientX, e.clientY, item);
+    });
+    return div;
+  }
+
+  // 滚动触底自动加载
+  entryListAside.addEventListener('scroll', function () {
+    if (this.scrollTop + this.clientHeight >= this.scrollHeight - 100) {
+      if (state.renderedCount < state.entries.length) renderList(false);
+    }
+  });
+
+  // ================================================================
+  // 局部更新条目视觉（避免整列表重渲）
+  // ================================================================
+  function updateItemVisual(origIdx) {
+    const el = entryList.querySelector(`.entry[data-idx="${origIdx}"]`);
+    if (!el) return;
+    const mark = state.marks.get(origIdx);
+    el.classList.remove('marked-yellow', 'marked-red', 'marked-green', 'marked-blue', 'marked-purple');
+    if (mark?.color) el.classList.add('marked-' + mark.color);
+    const oldNote = el.querySelector('.entry-note');
+    if (oldNote) oldNote.remove();
+    if (mark?.note) {
+      const n = document.createElement('div');
+      n.className = 'entry-note';
+      n.title = mark.note;
+      n.textContent = mark.note;
+      el.appendChild(n);
+    }
   }
 
   // ================================================================
@@ -917,7 +1249,13 @@
       const dot = document.createElement('button');
       dot.className = 'color-dot color-' + c + (mark.color === c ? ' selected' : '');
       dot.title = c;
-      dot.addEventListener('click', () => { const m = state.marks.get(origIdx) || {}; m.color = c; state.marks.set(origIdx, m); renderList(); closeContextMenu(); });
+      dot.addEventListener('click', () => {
+        const m = state.marks.get(origIdx) || {};
+        m.color = c;
+        state.marks.set(origIdx, m);
+        updateItemVisual(origIdx);
+        closeContextMenu();
+      });
       row.appendChild(dot);
     });
     menu.appendChild(row);
@@ -931,18 +1269,28 @@
       const m = state.marks.get(origIdx) || {};
       if (note.trim()) m.note = note.trim(); else delete m.note;
       if (!m.color && !m.note) state.marks.delete(origIdx); else state.marks.set(origIdx, m);
-      renderList(); closeContextMenu();
+      updateItemVisual(origIdx);
+      closeContextMenu();
     });
     menu.appendChild(noteBtn);
 
     if (mark.color) {
       const b = document.createElement('button'); b.className = 'ctx-btn'; b.textContent = '清除颜色';
-      b.addEventListener('click', () => { const m = state.marks.get(origIdx); if (m) { delete m.color; if (!m.note) state.marks.delete(origIdx); } renderList(); closeContextMenu(); });
+      b.addEventListener('click', () => {
+        const m = state.marks.get(origIdx);
+        if (m) { delete m.color; if (!m.note) state.marks.delete(origIdx); }
+        updateItemVisual(origIdx);
+        closeContextMenu();
+      });
       menu.appendChild(b);
     }
     if (mark.color || mark.note) {
       const b = document.createElement('button'); b.className = 'ctx-btn danger'; b.textContent = '清除全部标记';
-      b.addEventListener('click', () => { state.marks.delete(origIdx); renderList(); closeContextMenu(); });
+      b.addEventListener('click', () => {
+        state.marks.delete(origIdx);
+        updateItemVisual(origIdx);
+        closeContextMenu();
+      });
       menu.appendChild(b);
     }
     document.body.appendChild(menu); ctxMenu = menu;
@@ -953,49 +1301,7 @@
     menu.style.left = fx + 'px'; menu.style.top = fy + 'px';
   }
 
-  // ================================================================
-  // 列表
-  // ================================================================
   const LONG_PRESS_MS = 600;
-  function renderList() {
-    if (!state.entries.length) { entryList.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(255,255,255,.35);">无匹配请求</div>'; return; }
-    entryList.innerHTML = '';
-    state.entries.forEach((item, i) => {
-      const div = document.createElement('div');
-      const mark = state.marks.get(item.originalIndex);
-      let cls = 'entry'; if (i === state.currentIndex) cls += ' active';
-      if (mark?.color) cls += ' marked-' + mark.color;
-      div.className = cls;
-      const sc = item.status >= 200 && item.status < 300 ? 'ok' : item.status >= 400 ? 'err' : '';
-      const icon = TYPE_ICONS[item.type] ? TYPE_ICONS[item.type] + ' ' : '';
-      div.innerHTML = `
-        <span class="method method-${escapeHtml(item.method)}">${escapeHtml(item.method)}</span>
-        <span class="type-tag">${icon}${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>
-        <span class="url" title="${escapeHtml(item.url)}">${escapeHtml(item.url)}</span>
-        <span class="status ${sc}">${item.status || ''}</span>
-        ${mark?.note ? `<div class="entry-note" title="${escapeHtml(mark.note)}">${escapeHtml(mark.note)}</div>` : ''}
-      `;
-      let pressTimer = null, longPressed = false;
-      const startPress = () => {
-        longPressed = false; div.classList.add('pressing');
-        pressTimer = setTimeout(async () => {
-          longPressed = true; div.classList.remove('pressing');
-          try { const code = await generateFetchCode(item.entry, item.rule); await navigator.clipboard.writeText(code); showToast('已复制 Node.js 代码', 'ok'); }
-          catch (err) { showToast('复制失败: ' + err.message, 'err'); }
-        }, LONG_PRESS_MS);
-      };
-      const cancelPress = () => { clearTimeout(pressTimer); div.classList.remove('pressing'); };
-      div.addEventListener('mousedown', startPress);
-      div.addEventListener('mouseup', cancelPress);
-      div.addEventListener('mouseleave', cancelPress);
-      div.addEventListener('touchstart', (e) => { e.preventDefault(); startPress(); }, { passive: false });
-      div.addEventListener('touchend', cancelPress);
-      div.addEventListener('touchcancel', cancelPress);
-      div.addEventListener('click', () => { if (longPressed) { longPressed = false; return; } state.currentIndex = i; renderList(); renderDetail(); });
-      div.addEventListener('contextmenu', (e) => { e.preventDefault(); showContextMenu(e.clientX, e.clientY, item); });
-      entryList.appendChild(div);
-    });
-  }
 
   // ================================================================
   // 媒体预览
@@ -1169,25 +1475,50 @@
     if (!d) throw new Error('未知解码方式: ' + id);
     return await d.run(bytes, ctx);
   }
+
   async function runDecryptForItem(item, ds) {
     const { entry, rule } = item;
     const reqId = ds.reqDecoder || rule?.reqDecoder || 'raw';
     const resId = ds.resDecoder || rule?.resDecoder || 'raw';
     ds.reqDecoder = reqId; ds.resDecoder = resId;
+
+    const reqSize = entry.request?.bodySize || 0;
+    const resSize = entry.response?.content?.size || 0;
+    const reqTooBig = reqSize > MAX_AUTO_DECRYPT;
+    const resTooBig = resSize > MAX_AUTO_DECRYPT;
+
     const ctx = { rule, keys: rule?.keys || {} };
     const jobs = [];
+
     const rt = entry.request?.postData?.text;
-    if (rt) jobs.push((async () => {
-      try { const b = harTextToBytes(rt, entry.request.postData.encoding || ''); ds.reqResult = await runDecoder(reqId, b, ctx); ds.reqError = null; }
-      catch (e) { ds.reqError = e.message || String(e); ds.reqResult = null; }
-    })());
+    if (rt) {
+      if (reqTooBig) {
+        ds.reqError = `请求体过大 (${(reqSize/1024/1024).toFixed(1)}MB)，请切换下拉框手动解密`;
+        ds.reqResult = null;
+      } else {
+        jobs.push((async () => {
+          try { const b = harTextToBytes(rt, entry.request.postData.encoding || ''); ds.reqResult = await runDecoder(reqId, b, ctx); ds.reqError = null; }
+          catch (e) { ds.reqError = e.message || String(e); ds.reqResult = null; }
+        })());
+      }
+    }
+
     const st = entry.response?.content?.text;
-    if (st) jobs.push((async () => {
-      try { const b = harTextToBytes(st, entry.response.content.encoding || ''); ds.resResult = await runDecoder(resId, b, ctx); ds.resError = null; }
-      catch (e) { ds.resError = e.message || String(e); ds.resResult = null; }
-    })());
+    if (st) {
+      if (resTooBig) {
+        ds.resError = `响应体过大 (${(resSize/1024/1024).toFixed(1)}MB)，请切换下拉框手动解密`;
+        ds.resResult = null;
+      } else {
+        jobs.push((async () => {
+          try { const b = harTextToBytes(st, entry.response.content.encoding || ''); ds.resResult = await runDecoder(resId, b, ctx); ds.resError = null; }
+          catch (e) { ds.resError = e.message || String(e); ds.resResult = null; }
+        })());
+      }
+    }
+
     await Promise.all(jobs);
   }
+
   function getDecryptState(i) {
     if (!state.decryptState.has(i)) state.decryptState.set(i, { reqDecoder: '', reqResult: null, reqError: null, resDecoder: '', resResult: null, resError: null, autoRan: false, loading: false });
     return state.decryptState.get(i);
@@ -1197,7 +1528,7 @@
   // 详情
   // ================================================================
   function renderDetail() {
-    if (state.currentIndex < 0 || !state.entries[state.currentIndex]) { detailPanel.innerHTML = '<div class="empty">选择左侧请求查看详情</div>'; return; }
+    if (state.currentIndex < 0 || !state.entries[state.currentIndex]) { detailPanel.innerHTML = '<div class="empty">选择左侧请求查看详情，或将 HAR 文件拖入本页</div>'; return; }
     const item = state.entries[state.currentIndex];
     const { entry, originalIndex, rule, type } = item;
     const ds = getDecryptState(originalIndex);
@@ -1212,7 +1543,6 @@
       runDecryptForItem(item, ds).then(() => {
         ds.loading = false;
         if (state.entries[state.currentIndex]?.originalIndex === originalIndex) renderDetail();
-        renderList();
       });
     }
 
@@ -1239,7 +1569,7 @@
         onDecrypt: async (id) => {
           try { const b = harTextToBytes(reqText, req?.postData?.encoding || ''); ds.reqDecoder = id; ds.reqResult = await runDecoder(id, b, { rule, keys: rule?.keys || {} }); ds.reqError = null; }
           catch (err) { ds.reqDecoder = id; ds.reqResult = null; ds.reqError = err.message || String(err); }
-          renderDetail(); renderList();
+          renderDetail();
         },
       }));
     } else {
@@ -1276,7 +1606,7 @@
         onDecrypt: async (id) => {
           try { const b = harTextToBytes(resText, res?.content?.encoding || ''); ds.resDecoder = id; ds.resResult = await runDecoder(id, b, { rule, keys: rule?.keys || {} }); ds.resError = null; }
           catch (err) { ds.resDecoder = id; ds.resResult = null; ds.resError = err.message || String(err); }
-          renderDetail(); renderList();
+          renderDetail();
         },
       }));
     }
@@ -1327,13 +1657,13 @@
     const rl = document.createElement('div'); rl.className = 'label-mini'; rl.textContent = '解析结果:'; w.appendChild(rl);
 
     if (loading) { const p = document.createElement('pre'); p.className = 'loading'; p.textContent = '正在自动解密…'; w.appendChild(p); }
-    else if (error) { const p = document.createElement('pre'); p.className = 'err'; p.textContent = '解密失败：' + error; w.appendChild(p); }
+    else if (error) { const p = document.createElement('pre'); p.className = 'err'; p.textContent = error; w.appendChild(p); }
     else if (result === null || result === undefined) { const p = document.createElement('pre'); p.className = 'empty'; p.textContent = '（无结果，可切换下拉框重试）'; w.appendChild(p); }
     else {
       const disp = bytesToDisplay(result);
       const pre = document.createElement('pre'); pre.textContent = disp.text; w.appendChild(pre);
       const btn = document.createElement('button'); btn.textContent = '复制结果';
-      btn.style.cssText = 'margin-top:8px;padding:5px 12px;border:1px solid rgba(90,170,230,.5);background:rgba(14,99,156,.3);color:#9ad0ff;border-radius:5px;cursor:pointer;font-size:12px;';
+      btn.style.cssText = 'margin-top:8px;padding:5px 12px;border:1px solid rgba(90,170,230,.5);background:rgba(14,99,156,.3);color:#9ad0ff;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;';
       btn.addEventListener('click', async () => {
         try { await navigator.clipboard.writeText(disp.text); btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制结果', 1500); }
         catch { btn.textContent = '复制失败'; }
@@ -1348,7 +1678,7 @@
   // ================================================================
   autoAllBtn.addEventListener('click', async () => {
     if (!state.har) return;
-    autoAllBtn.disabled = true; autoAllBtn.innerHTML = '<span class="icon">⏳</span>处理中…';
+    autoAllBtn.disabled = true; autoAllBtn.textContent = '⏳ 处理中…';
     let total = 0;
     for (let i = 0; i < state.har.log.entries.length; i++) {
       const entry = state.har.log.entries[i]; const url = entry.request?.url || '';
@@ -1357,8 +1687,8 @@
       const ds = getDecryptState(i); ds.autoRan = true;
       await runDecryptForItem({ entry, originalIndex: i, url, rule }, ds);
     }
-    renderList(); renderDetail();
-    autoAllBtn.innerHTML = '<span class="icon">🔓</span>批量解密'; autoAllBtn.disabled = false;
+    renderDetail();
+    autoAllBtn.textContent = '🔓 批量解密'; autoAllBtn.disabled = false;
     alert(`命中规则 ${total} 条，已处理完成。`);
   });
 
@@ -1447,7 +1777,6 @@
     if (name === 'rules') fillDecoderSelects();
   }
 
-  // 模板下拉
   function fillTemplateSelect() {
     const cur = decoderTemplateSelect.value;
     decoderTemplateSelect.innerHTML = '<option value="">-- 手动填写 --</option>';
@@ -1468,7 +1797,6 @@
     if (!decoderLabelInput.value.trim()) decoderLabelInput.value = t.label || id;
   });
 
-  // 重载文件
   function reloadFiles() {
     const s1 = document.createElement('script');
     s1.src = './decoders.js?' + Date.now();
@@ -1488,7 +1816,6 @@
   $('reloadFilesBtn').addEventListener('click', reloadFiles);
   $('reloadFilesBtn2').addEventListener('click', reloadFiles);
 
-  // 算法列表
   function renderDecoderList() {
     decoderList.innerHTML = '';
     const fileIds = Object.keys(fileDecoders);
@@ -1578,7 +1905,6 @@
     showToast(`会话算法「${label}」已添加`, 'ok');
   });
 
-  // 规则列表
   function renderRuleList() {
     ruleList.innerHTML = '';
     const hasAny = fileRules.length || sessionRules.length;
@@ -1683,12 +2009,8 @@
     if (configModal.style.display === 'flex') fillDecoderSelects();
   }
 
-  // 导出：decoders.js 片段（整块）
   function genExportDecoders() {
-    if (!Object.keys(sessionDecoders).length) {
-      exportOutput.value = '// 会话内暂无算法';
-      return;
-    }
+    if (!Object.keys(sessionDecoders).length) { exportOutput.value = '// 会话内暂无算法'; return; }
     const lines = ['window.HAR_DECODERS = {'];
     for (const [id, d] of Object.entries(sessionDecoders)) {
       lines.push('');
@@ -1702,13 +2024,8 @@
     lines.push('};');
     exportOutput.value = lines.join('\n');
   }
-
-  // 导出：rules.js 片段（纯数组）
   function genExportRules() {
-    if (!sessionRules.length) {
-      exportOutput.value = '// 会话内暂无规则';
-      return;
-    }
+    if (!sessionRules.length) { exportOutput.value = '// 会话内暂无规则'; return; }
     const lines = ['['];
     sessionRules.forEach(r => {
       lines.push('  {');
