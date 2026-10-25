@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>HAR 解密查看器</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, "Segoe UI", sans-serif; font-size: 13px; }
+  body {
+    display: flex; flex-direction: column;
+    background: #1a1a1a url('https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/e94b1e49-c518-40d6-98e3-dffab6cc370d.avif') center/cover no-repeat fixed;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.4) 30%, rgba(0,0,0,.55));
+    z-index: 0; pointer-events: none;
+  }
+  header {
+    position: relative; z-index: 1; padding: 10px 16px;
+    background: rgba(20,20,20,.55);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    color: #eee; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 2px 20px rgba(0,0,0,.35);
+  }
+  header button, header label.file-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.14); color: #fff;
+    border: 1px solid rgba(255,255,255,.22);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    font-size: 12.5px; font-weight: 500; white-space: nowrap;
+    backdrop-filter: blur(8px); transition: all .18s ease;
+    user-select: none; line-height: 1;
+  }
+  header button:hover:not(:disabled), header label.file-btn:hover {
+    background: rgba(255,255,255,.24); border-color: rgba(255,255,255,.38);
+    transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  }
+  header button:active:not(:disabled) { transform: translateY(0); }
+  header button:disabled {
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.35);
+    border-color: rgba(255,255,255,.1); cursor: not-allowed; transform: none;
+  }
+  header button.primary { background: rgba(14,99,156,.75); border-color: rgba(90,170,230,.5); }
+  header button.primary:hover:not(:disabled) { background: rgba(20,120,190,.85); }
+  header button.success { background: rgba(34,140,60,.75); border-color: rgba(90,200,120,.5); }
+  header button.success:hover:not(:disabled) { background: rgba(40,160,70,.85); }
+  header button.toggle-active { background: rgba(217,119,6,.8); border-color: rgba(255,180,80,.6); }
+  header button.toggle-active:hover:not(:disabled) { background: rgba(235,135,20,.9); }
+  header .icon { font-size: 14px; }
+  header input[type=file] { display: none; }
+  #stats {
+    color: rgba(255,255,255,.75); font-size: 12px; margin-left: auto;
+    padding: 5px 12px; background: rgba(0,0,0,.35);
+    border-radius: 8px; border: 1px solid rgba(255,255,255,.1);
+    backdrop-filter: blur(8px);
+  }
+  .filter-bar {
+    position: relative; z-index: 1; padding: 8px 14px;
+    background: rgba(20,20,20,.45); backdrop-filter: blur(14px);
+    color: #ddd; border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex; flex-direction: column; gap: 6px;
+    transition: max-height .25s ease, padding .25s ease, opacity .2s ease;
+    max-height: 600px; overflow: hidden;
+  }
+  .filter-bar.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom: none; opacity: 0; }
+  .filter-hint { font-size: 11px; color: rgba(255,255,255,.55); display: flex; align-items: center; gap: 12px; }
+  .filter-hint .kbd { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); }
+  .filter-hint .kbd.inc { border-color: #0e639c; color: #6ab8ef; }
+  .filter-hint .kbd.exc { border-color: #b91c1c; color: #ef8a8a; }
+  .filter-row { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+  .filter-row .label { color: rgba(255,255,255,.55); font-size: 11px; min-width: 40px; user-select: none; padding-top: 5px; }
+  .tag-group { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; max-height: 130px; overflow-y: auto; padding: 1px 0; }
+  .tag-btn {
+    padding: 3px 10px; border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.06); color: rgba(255,255,255,.7);
+    border-radius: 5px; cursor: pointer; font-size: 11px;
+    white-space: nowrap; user-select: none; transition: all .12s;
+  }
+  .tag-btn:hover { border-color: rgba(255,255,255,.4); color: #fff; background: rgba(255,255,255,.12); }
+  .tag-btn.all-btn { border-color: rgba(90,170,230,.6); color: rgba(150,210,255,.9); }
+  .tag-btn.all-btn.active { background: rgba(14,99,156,.8); color: #fff; border-color: rgba(90,170,230,.8); }
+  .tag-btn.include { background: rgba(14,99,156,.85); color: #fff; border-color: rgba(90,170,230,.8); }
+  .tag-btn.include::before { content: "✓ "; font-weight: bold; }
+  .tag-btn.exclude { background: rgba(185,28,28,.85); color: #fff; border-color: rgba(230,100,100,.8); }
+  .tag-btn.exclude::before { content: "− "; font-weight: bold; }
+  .reset-btn {
+    padding: 4px 10px; border: 1px solid rgba(255,255,255,.22);
+    background: rgba(255,255,255,.06); color: rgba(255,255,255,.75);
+    border-radius: 5px; cursor: pointer; font-size: 12px;
+  }
+  .reset-btn:hover { border-color: rgba(255,255,255,.5); color: #fff; background: rgba(255,255,255,.12); }
+  main { position: relative; z-index: 1; flex: 1; display: flex; overflow: hidden; }
+  aside {
+    width: 42%; max-width: 640px; border-right: 1px solid rgba(255,255,255,.08);
+    overflow-y: auto; background: rgba(20,20,20,.4);
+    backdrop-filter: blur(10px);
+  }
+  #entryList .entry {
+    padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.06);
+    cursor: pointer; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    user-select: none; color: #ddd; transition: background-color .15s, box-shadow .15s;
+    border-left: 3px solid transparent;
+  }
+  #entryList .entry:hover { background: rgba(255,255,255,.08); }
+  #entryList .entry.active { border-left-color: #4fa3e0; background: rgba(14,99,156,.25); box-shadow: inset 0 0 0 1px rgba(79,163,224,.4); }
+  #entryList .entry.pressing { box-shadow: inset 0 0 0 2px rgba(217,119,6,.6); }
+  .entry.marked-yellow { background: rgba(255,235,59,.2); }
+  .entry.marked-red { background: rgba(239,83,80,.2); }
+  .entry.marked-green { background: rgba(76,175,80,.2); }
+  .entry.marked-blue { background: rgba(66,165,245,.2); }
+  .entry.marked-purple { background: rgba(171,71,188,.2); }
+  #entryList .url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; font-size: 12px; }
+  #entryList .status { font-size: 11px; color: rgba(255,255,255,.55); }
+  #entryList .status.ok { color: #7ddf7d; }
+  #entryList .status.err { color: #ef8a8a; }
+  #entryList .type-tag {
+    font-size: 10px; color: rgba(255,255,255,.6); padding: 1px 5px;
+    border: 1px solid rgba(255,255,255,.15); border-radius: 3px;
+    background: rgba(255,255,255,.06); white-space: nowrap;
+  }
+  #entryList .entry-note {
+    width: 100%; margin-top: 2px; padding-left: 3px; font-size: 11px;
+    color: rgba(255,255,255,.6); font-style: italic;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #entryList .entry-note::before { content: "备注："; color: rgba(255,255,255,.4); font-style: normal; font-weight: bold; }
+  .method {
+    font-weight: bold; padding: 2px 8px; border-radius: 4px; color: #fff;
+    font-size: 11px; min-width: 54px; text-align: center;
+    letter-spacing: .5px; background: #6b7280;
+  }
+  .method.method-GET { background: #2f855a; }
+  .method.method-POST { background: #d97706; font-weight: 900; padding: 3px 10px; box-shadow: 0 0 0 2px rgba(20,20,20,.8) inset, 0 0 0 3px #d97706 inset; }
+  .method.method-PUT { background: #2563eb; }
+  .method.method-DELETE { background: #dc2626; }
+  .method.method-PATCH { background: #7c3aed; }
+  .method.method-HEAD { background: #0891b2; }
+  .method.method-OPTIONS { background: #6b7280; }
+  .context-menu {
+    position: fixed; z-index: 2000; background: rgba(30,30,30,.95); color: #ddd;
+    backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    padding: 8px; min-width: 190px; font-size: 12px;
+  }
+  .context-menu .ctx-row {
+    display: flex; gap: 6px; align-items: center;
+    padding: 4px 4px 10px; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 6px;
+  }
+  .context-menu .ctx-label { color: rgba(255,255,255,.5); font-size: 11px; }
+  .color-dot {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer; padding: 0; outline: none;
+    transition: transform .1s, border-color .1s;
+  }
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.selected { border-color: #fff; box-shadow: 0 0 0 2px rgba(30,30,30,.8) inset; }
+  .color-yellow { background: #ffe082; }
+  .color-red { background: #ef9a9a; }
+  .color-green { background: #a5d6a7; }
+  .color-blue { background: #90caf9; }
+  .color-purple { background: #ce93d8; }
+  .context-menu .ctx-btn {
+    display: block; width: 100%; text-align: left;
+    padding: 7px 10px; border: none; background: transparent;
+    cursor: pointer; font-size: 12px; color: #ddd;
+    border-radius: 4px; margin-top: 2px;
+  }
+  .context-menu .ctx-btn:hover { background: rgba(255,255,255,.1); }
+  .context-menu .ctx-btn.danger { color: #ef8a8a; }
+  .context-menu .ctx-btn.danger:hover { background: rgba(185,28,28,.25); }
+  section {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    background: rgba(20,20,20,.35); backdrop-filter: blur(10px); color: #ddd;
+  }
+  .empty { text-align: center; color: rgba(255,255,255,.35); padding-top: 120px; }
+  .field { margin-bottom: 14px; }
+  .field > label { display: block; color: rgba(255,255,255,.45); margin-bottom: 4px; font-size: 12px; }
+  .field > .value { font-family: monospace; word-break: break-all; color: #eee; }
+  .section-title {
+    font-weight: bold; font-size: 14px; margin: 22px 0 10px;
+    padding-bottom: 6px; border-bottom: 1px solid rgba(79,163,224,.4); color: #eee;
+  }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar select {
+    padding: 5px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+    background: rgba(30,30,30,.8); color: #ddd; min-width: 260px; font-size: 12px;
+  }
+  .toolbar select option { background: #222; color: #ddd; }
+  .tag { display: inline-block; padding: 2px 8px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); border-radius: 4px; font-size: 11px; }
+  .label-mini { color: rgba(255,255,255,.45); margin: 12px 0 5px; font-size: 12px; }
+  pre {
+    background: rgba(0,0,0,.5); color: #c8d0d8; padding: 12px; border-radius: 8px;
+    overflow: auto; max-height: 400px; font-size: 12px;
+    font-family: "Consolas", "Monaco", monospace;
+    white-space: pre-wrap; word-break: break-all; margin: 0;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  pre.err { background: rgba(60,20,20,.6); color: #ef9a9a; border-color: rgba(239,83,80,.3); }
+  pre.empty { background: rgba(255,255,255,.04); color: rgba(255,255,255,.35); padding: 10px; }
+  pre.loading { background: rgba(255,255,255,.04); color: rgba(255,255,255,.5); padding: 10px; font-style: italic; }
+  details.original-block { margin-bottom: 6px; }
+  details.original-block > summary { cursor: pointer; color: #6ab8ef; font-size: 12px; padding: 5px 0; user-select: none; }
+  details.original-block > summary:hover { color: #9ad0ff; }
+  details.original-block pre { margin-top: 5px; }
+  .media-preview {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; padding: 16px; margin: 10px 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .media-preview img { max-width: 100%; max-height: 420px; border-radius: 6px; background: repeating-conic-gradient(rgba(255,255,255,.08) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+  .media-preview audio { width: 100%; max-width: 520px; }
+  .media-preview video { max-width: 100%; max-height: 420px; border-radius: 6px; }
+  .media-meta { font-size: 11px; color: rgba(255,255,255,.4); margin-bottom: 6px; }
+  .toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+    background: rgba(30,30,30,.95); color: #fff; padding: 12px 24px;
+    border-radius: 8px; font-size: 13px; z-index: 3000;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(16px);
+    animation: toastIn .2s ease;
+  }
+  .toast.ok { border-color: rgba(76,175,80,.5); color: #a5d6a7; }
+  .toast.err { border-color: rgba(239,83,80,.5); color: #ef9a9a; }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    backdrop-filter: blur(6px); z-index: 1500;
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn .15s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: rgba(28,28,30,.97); color: #e0e0e0;
+    width: 860px; max-width: 94vw; max-height: 90vh;
+    border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    border: 1px solid rgba(255,255,255,.12);
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { transform: scale(.96) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  .modal-header {
+    padding: 16px 22px; background: rgba(255,255,255,.04);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h2 { margin: 0; font-size: 15px; color: #eee; font-weight: 600; }
+  .modal-close {
+    border: none; background: transparent; font-size: 24px;
+    color: rgba(255,255,255,.5); cursor: pointer; padding: 0 8px; line-height: 1; border-radius: 4px;
+  }
+  .modal-close:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .modal-tabs {
+    display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(0,0,0,.2);
+  }
+  .modal-tab {
+    padding: 12px 22px; border: none; background: transparent;
+    cursor: pointer; font-size: 13px; color: rgba(255,255,255,.5);
+    border-bottom: 2px solid transparent; font-weight: 500;
+    transition: all .15s;
+  }
+  .modal-tab:hover { color: #9ad0ff; background: rgba(255,255,255,.04); }
+  .modal-tab.active { color: #6ab8ef; border-bottom-color: #4fa3e0; background: rgba(14,99,156,.1); }
+  .modal-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  .panel-toolbar {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 14px; padding-bottom: 12px;
+    border-bottom: 1px dashed rgba(255,255,255,.1);
+    flex-wrap: wrap;
+  }
+  .panel-toolbar .hint { font-size: 11px; color: rgba(255,255,255,.4); }
+  .btn-primary {
+    background: rgba(14,99,156,.85); color: #fff;
+    border: 1px solid rgba(90,170,230,.5);
+    padding: 7px 16px; border-radius: 6px; cursor: pointer;
+    font-size: 12.5px; font-weight: 500; transition: all .15s;
+  }
+  .btn-primary:hover { background: rgba(20,120,190,.95); }
+  .btn-secondary {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+    color: rgba(255,255,255,.8);
+    padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 12.5px;
+    transition: all .15s;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.3); color: #fff; }
+  .config-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .config-empty {
+    padding: 28px; text-align: center; color: rgba(255,255,255,.35);
+    background: rgba(255,255,255,.03); border: 1px dashed rgba(255,255,255,.12); border-radius: 8px;
+    font-size: 12px;
+  }
+  .config-item {
+    display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px; transition: border-color .15s, background .15s;
+  }
+  .config-item:hover { border-color: rgba(79,163,224,.4); background: rgba(255,255,255,.06); }
+  .config-item-main { flex: 1; min-width: 0; }
+  .config-item-title {
+    font-size: 13px; font-weight: 600; color: #eee; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .config-item-id {
+    font-family: monospace; font-size: 11px; color: rgba(255,255,255,.5);
+    background: rgba(255,255,255,.08); padding: 1px 7px; border-radius: 4px; font-weight: normal;
+  }
+  .badge-file { background: rgba(34,140,60,.25); color: #a5d6a7; padding: 1px 7px; border-radius: 4px; font-size: 10.5px; font-weight: normal; }
+  .badge-session { background: rgba(217,119,6,.25); color: #ffcc80; padding: 1px 7px; border-radius: 4px; font-size: 10.5px; font-weight: normal; }
+  .badge-error { background: rgba(239,83,80,.25); color: #ef9a9a; padding: 1px 7px; border-radius: 4px; font-size: 10.5px; font-weight: normal; }
+  .badge-keys { background: rgba(34,140,60,.25); color: #a5d6a7; padding: 1px 7px; border-radius: 4px; font-size: 10.5px; font-weight: normal; }
+  .config-item-preview {
+    font-family: monospace; font-size: 11px; color: rgba(255,255,255,.45);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 520px;
+  }
+  .config-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .config-item-actions button {
+    padding: 5px 12px; border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.06); color: rgba(255,255,255,.75);
+    border-radius: 5px; cursor: pointer; font-size: 11.5px; transition: all .12s;
+  }
+  .config-item-actions button:hover { border-color: rgba(90,170,230,.6); color: #9ad0ff; background: rgba(14,99,156,.2); }
+  .config-item-actions button.danger { color: #ef9a9a; border-color: rgba(239,83,80,.3); }
+  .config-item-actions button.danger:hover { background: rgba(185,28,28,.25); border-color: rgba(239,83,80,.6); }
+  .config-form {
+    background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; padding: 16px; margin-top: 10px;
+  }
+  .form-row { margin-bottom: 14px; }
+  .form-row > label { display: block; font-size: 12px; color: rgba(255,255,255,.65); margin-bottom: 6px; font-weight: 500; }
+  .form-row input[type=text], .form-row select {
+    width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 6px;
+    font-size: 12.5px; color: #eee; background: rgba(0,0,0,.3); transition: border-color .15s;
+  }
+  .form-row input[type=text]:focus, .form-row select:focus { outline: none; border-color: #4fa3e0; box-shadow: 0 0 0 2px rgba(79,163,224,.2); }
+  .form-row select option { background: #222; color: #eee; }
+  .form-row textarea {
+    width: 100%; min-height: 180px; padding: 12px;
+    border: 1px solid rgba(255,255,255,.18); border-radius: 6px;
+    font-family: "Consolas", "Monaco", monospace; font-size: 12px;
+    color: #c8d0d8; background: rgba(0,0,0,.4); resize: vertical; line-height: 1.55;
+    transition: border-color .15s;
+  }
+  .form-row textarea:focus { outline: none; border-color: #4fa3e0; box-shadow: 0 0 0 2px rgba(79,163,224,.2); }
+  .form-row .hint { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 6px; line-height: 1.6; }
+  .form-row .hint code { background: rgba(255,255,255,.1); padding: 1px 6px; border-radius: 3px; font-family: monospace; color: rgba(255,255,255,.65); }
+  .form-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .form-error {
+    background: rgba(185,28,28,.2); border: 1px solid rgba(239,83,80,.4); color: #ef9a9a;
+    padding: 10px 14px; border-radius: 6px; font-size: 12px;
+    margin-bottom: 12px; font-family: monospace; white-space: pre-wrap; word-break: break-all;
+  }
+  .export-box { background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 14px; margin: 10px 0; }
+  .export-box textarea {
+    width: 100%; min-height: 220px; padding: 10px; border: none; border-radius: 6px;
+    font-family: "Consolas", "Monaco", monospace; font-size: 12px;
+    color: #c8d0d8; background: rgba(0,0,0,.5); resize: vertical; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <label class="file-btn"><span class="icon">📂</span>选择 HAR<input type="file" id="harInput" accept=".har,.json,application/json"></label>
+    <button id="configBtn"><span class="icon">⚙</span>解密配置</button>
+    <button id="toggleFilterBtn" class="secondary" disabled><span class="icon">🔽</span>展开过滤</button>
+    <button id="autoDecryptAllBtn" class="secondary" disabled><span class="icon">🔓</span>批量解密</button>
+    <button id="exportBtn" class="primary" disabled><span class="icon">💾</span>导出解密 HAR</button>
+    <button id="exportListBtn" class="success" disabled><span class="icon">📤</span>导出筛选 HAR</button>
+    <span id="stats">未加载</span>
+  </header>
+
+  <div class="filter-bar collapsed" id="filterBar">
+    <div class="filter-hint">
+      <span>点击按钮切换状态：</span>
+      <span class="kbd">未选</span><span>→</span>
+      <span class="kbd inc">✓ 包含</span><span>→</span>
+      <span class="kbd exc">− 排除</span><span>→</span>
+      <span class="kbd">未选</span>
+      <button class="reset-btn" id="resetFilterBtn" style="margin-left:auto;">重置过滤</button>
+    </div>
+    <div class="filter-row"><span class="label">方法</span><div id="methodGroup" class="tag-group"></div></div>
+    <div class="filter-row"><span class="label">类型</span><div id="typeGroup" class="tag-group"></div></div>
+    <div class="filter-row"><span class="label">MIME</span><div id="mimeGroup" class="tag-group"></div></div>
+    <div class="filter-row"><span class="label">域名</span><div id="domainGroup" class="tag-group"></div></div>
+  </div>
+
+  <main>
+    <aside><div id="entryList"></div></aside>
+    <section id="detailPanel"><div class="empty">选择左侧请求查看详情</div></section>
+  </main>
+
+  <!-- ================= 解密配置模态框 ================= -->
+  <div class="modal-backdrop" id="configModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>⚙ 解密配置</h2>
+        <button class="modal-close" id="modalCloseBtn">×</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="decoders">解密算法</button>
+        <button class="modal-tab" data-tab="rules">域名规则</button>
+        <button class="modal-tab" data-tab="export">导出配置</button>
+      </div>
+      <div class="modal-body">
+        <div class="tab-pane active" data-pane="decoders">
+          <div class="panel-toolbar">
+            <button class="btn-primary" id="addDecoderBtn">+ 会话内添加算法</button>
+            <button class="btn-secondary" id="reloadFilesBtn">🔄 重载文件</button>
+            <span class="hint">「文件」标记者来自 decoders.js，「会话」标记者仅当前页面有效</span>
+          </div>
+          <div id="decoderList" class="config-list"></div>
+
+          <div id="decoderForm" class="config-form" style="display:none;">
+            <div id="decoderFormError" class="form-error" style="display:none;"></div>
+            <div class="form-row">
+              <label>算法 ID（唯一标识）</label>
+              <input type="text" id="decoderIdInput" placeholder="例如 myAes">
+              <div class="hint">不能与内置 / 文件中的算法冲突</div>
+            </div>
+            <div class="form-row">
+              <label>从模板填充代码</label>
+              <select id="decoderTemplateSelect">
+                <option value="">-- 手动填写 --</option>
+              </select>
+              <div class="hint">选中模板会自动填充到下方代码框；密钥在「域名规则」中配置</div>
+            </div>
+            <div class="form-row">
+              <label>显示名称</label>
+              <input type="text" id="decoderLabelInput" placeholder="例如 我的 AES 解密">
+            </div>
+            <div class="form-row">
+              <label>CDN 依赖（可选，逗号分隔）</label>
+              <input type="text" id="decoderCdnInput" placeholder="例如 https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js">
+            </div>
+            <div class="form-row">
+              <label>代码（函数表达式）</label>
+              <textarea id="decoderCodeInput" spellcheck="false"></textarea>
+              <div class="hint">
+                签名：<code>function(bytes, ctx)</code> 或 <code>async function(bytes, ctx)</code>。
+                <code>bytes</code> 是 Uint8Array；<code>ctx.keys</code> 是该域名规则里配置的密钥对象。
+                可用全局：<code>pako</code>、<code>TextDecoder</code>、<code>TextEncoder</code>、<code>atob</code>、<code>btoa</code>、<code>JSON</code>、<code>crypto</code>。
+                返回值可以是字符串 / 对象 / Uint8Array。
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-primary" id="saveDecoderBtn">保存（仅本次会话）</button>
+              <button class="btn-secondary" id="cancelDecoderBtn">取消</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" data-pane="rules">
+          <div class="panel-toolbar">
+            <button class="btn-primary" id="addRuleBtn">+ 会话内添加规则</button>
+            <button class="btn-secondary" id="reloadFilesBtn2">🔄 重载文件</button>
+            <span class="hint">「文件」标记者来自 rules.js，「会话」标记者仅当前页面有效</span>
+          </div>
+          <div id="ruleList" class="config-list"></div>
+
+          <div id="ruleForm" class="config-form" style="display:none;">
+            <div id="ruleFormError" class="form-error" style="display:none;"></div>
+            <div class="form-row">
+              <label>域名模式</label>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="rulePatternInput" placeholder="例如 api.example.com 或 ^api\..*\.com$" style="flex:1;">
+                <select id="ruleTypeSelect" style="width:120px;flex:none;">
+                  <option value="string">包含</option>
+                  <option value="regex">正则</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>请求体默认解码</label>
+              <select id="ruleReqDecoderSelect"></select>
+            </div>
+            <div class="form-row">
+              <label>响应体默认解码</label>
+              <select id="ruleResDecoderSelect"></select>
+            </div>
+            <div class="form-row">
+              <label>密钥配置（JSON，可选）</label>
+              <textarea id="ruleKeysInput" spellcheck="false" placeholder='{"key": "your-hex-key", "iv": "your-hex-iv"}' style="min-height:90px;font-family:Consolas,monospace;"></textarea>
+              <div class="hint">
+                算法中通过 <code>ctx.keys</code> 读取此对象；不同域名可以配置不同密钥。
+                常用格式：AES-CBC/GCM 用 <code>key</code>（64 hex 字符）+ <code>iv</code>（32 hex 字符）；XOR 用整数 <code>key</code>。
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-primary" id="saveRuleBtn">保存（仅本次会话）</button>
+              <button class="btn-secondary" id="cancelRuleBtn">取消</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" data-pane="export">
+          <div class="panel-toolbar">
+            <button class="btn-primary" id="exportDecodersBtn">生成 decoders.js 片段</button>
+            <button class="btn-primary" id="exportRulesBtn">生成 rules.js 片段</button>
+            <button class="btn-secondary" id="copyExportBtn">复制到剪贴板</button>
+          </div>
+          <div class="hint" style="margin-bottom:10px;color:rgba(255,255,255,.5);">
+            <div style="margin-bottom:4px;">
+              ·「生成 decoders.js 片段」= <code>window.HAR_DECODERS = {...};</code> 整块结构，可直接替换 <code>decoders.js</code> 全文
+            </div>
+            <div>
+              ·「生成 rules.js 片段」= <code>[ {...}, {...} ]</code> 纯数组，请替换 <code>rules.js</code> 里 <code>window.HAR_RULES = [...]</code> 的 <code>[...]</code> 部分
+            </div>
+          </div>
+          <div class="export-box">
+            <textarea id="exportOutput" readonly placeholder="点击上方按钮生成代码片段"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+  <script src="./decoders.js"></script>
+  <script src="./rules.js"></script>
+  <script>
+  // ================================================================
+  // 工具
+  // ================================================================
+  function harTextToBytes(text, encoding) {
+    if (!text) return new Uint8Array(0);
+    if (encoding === 'base64') {
+      const bin = atob(text); const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+    for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) > 0xff) return new TextEncoder().encode(text);
+    const out = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) out[i] = text.charCodeAt(i);
+    return out;
+  }
+  function bytesToBase64(bytes) {
+    let bin = ''; const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    return btoa(bin);
+  }
+  function hexDump(bytes) {
+    const lines = [];
+    for (let i = 0; i < bytes.length; i += 16) {
+      const c = bytes.slice(i, i + 16);
+      const hex = Array.from(c).map(b => b.toString(16).padStart(2, '0')).join(' ');
+      const ascii = Array.from(c).map(b => (b >= 32 && b < 127) ? String.fromCharCode(b) : '.').join('');
+      lines.push(`${i.toString(16).padStart(6, '0')}  ${hex.padEnd(47)}  ${ascii}`);
+    }
+    return lines.join('\n') || '（0 字节）';
+  }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+  function bytesToDisplay(data) {
+    if (data == null) return { text: '（空）' };
+    if (typeof data === 'string') return { text: data };
+    if (data instanceof Uint8Array) {
+      try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(data) }; }
+      catch { return { text: hexDump(data) }; }
+    }
+    if (data instanceof ArrayBuffer) return bytesToDisplay(new Uint8Array(data));
+    return { text: JSON.stringify(data, null, 2) };
+  }
+  function showToast(msg, type = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 350); }, 1800);
+  }
+  function formatTime(iso) {
+    if (!iso) return '';
+    try { const d = new Date(iso); if (isNaN(d.getTime())) return iso;
+      const p = n => String(n).padStart(2, '0');
+      return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    } catch { return iso; }
+  }
+
+  // ================================================================
+  // 智能解析
+  // ================================================================
+  function looksLikeBase64(s) {
+    if (!s || s.length < 12 || s.length % 4 !== 0) return false;
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return false;
+    return /[+/=]/.test(s) || s.length >= 16;
+  }
+  function smartDecodeValue(v) {
+    if (typeof v !== 'string') return v;
+    let cur = v;
+    for (let i = 0; i < 2; i++) {
+      if (!/%[0-9A-Fa-f]{2}/.test(cur)) break;
+      try { const d = decodeURIComponent(cur.replace(/\+/g, ' ')); if (d === cur) break; cur = d; } catch { break; }
+    }
+    if (looksLikeBase64(cur)) {
+      try {
+        const bin = atob(cur); const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        if (!/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) return text;
+      } catch { /* ignore */ }
+    }
+    return cur;
+  }
+  function tryParseForm(text) {
+    if (!text || !text.includes('=')) return null;
+    const parts = text.split('&'); const out = {};
+    for (const part of parts) {
+      const eq = part.indexOf('='); if (eq <= 0) return null;
+      const k = smartDecodeValue(part.slice(0, eq).replace(/\+/g, ' '));
+      out[k] = smartDecodeValue(part.slice(eq + 1));
+    }
+    return Object.keys(out).length ? out : null;
+  }
+
+  // ================================================================
+  // 内置解码器
+  // ================================================================
+  const BUILTIN_DECODERS = {
+    raw: { label: '智能解析（form → JSON / URL / Base64）', run: (bytes) => {
+      let text; try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { return bytes; }
+      if (!text) return text;
+      const t = text.trim();
+      if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) { try { return JSON.parse(t); } catch {} }
+      const form = tryParseForm(text); if (form) return form;
+      return text;
+    }},
+    utf8: { label: 'UTF-8 解码', run: (b) => new TextDecoder('utf-8').decode(b) },
+    json: { label: 'UTF-8 + JSON 解析', run: (b) => JSON.parse(new TextDecoder('utf-8').decode(b)) },
+    gunzip: { label: 'gzip 解压', run: (b) => pako.ungzip(b) },
+    inflate: { label: 'zlib inflate 解压', run: (b) => pako.inflate(b) },
+    gzipFix: { label: 'gzip 头修复 + 解压（jiem）', run: (bytes) => {
+      const t = new Uint8Array(bytes);
+      if (t.length < 8) throw new Error('长度 < 8');
+      t[0]=0x1f;t[1]=0x8b;t[2]=0x08;t[3]=0x00;t[4]=0x00;t[5]=0x00;t[6]=0x00;t[7]=0x00;
+      const raw = pako.ungzip(t);
+      return JSON.parse(new TextDecoder('utf-8').decode(raw));
+    }},
+    base64ThenJson: { label: 'Base64 解码 + JSON 解析', run: (bytes) => {
+      const s = new TextDecoder().decode(bytes).trim(); const bin = atob(s);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return JSON.parse(new TextDecoder('utf-8').decode(out));
+    }},
+  };
+
+  // ================================================================
+  // 自定义数据（文件 + 会话）
+  // ================================================================
+  let fileDecoders = {};       // 来自 decoders.js
+  let fileRules = [];          // 来自 rules.js
+  let sessionDecoders = {};    // 页面内临时（内存）
+  let sessionRules = [];
+
+  const _compiledFns = new Map();
+  const _loadedCdns = new Map();
+
+  function loadCdnScript(url) {
+    if (!url) return Promise.resolve();
+    if (_loadedCdns.has(url)) return _loadedCdns.get(url);
+    const p = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = url; s.async = true;
+      s.onload = () => res();
+      s.onerror = () => { _loadedCdns.delete(url); rej(new Error('CDN 加载失败: ' + url)); };
+      document.head.appendChild(s);
+    });
+    _loadedCdns.set(url, p);
+    return p;
+  }
+  async function loadCdns(urls) {
+    if (!urls || !urls.length) return;
+    await Promise.all(urls.map(loadCdnScript));
+  }
+
+  function compileDecoderCode(code) {
+    try {
+      const factory = new Function('pako', `return (${code});`);
+      const fn = factory(window.pako);
+      if (typeof fn !== 'function') throw new Error('代码必须是一个函数');
+      return { fn, error: null };
+    } catch (e) { return { fn: null, error: e.message }; }
+  }
+  function getCompiledCustom(id) {
+    const c = sessionDecoders[id] || fileDecoders[id];
+    if (!c) return null;
+    const cached = _compiledFns.get(id);
+    if (cached && cached.code === c.code) return cached;
+    const result = { code: c.code, ...compileDecoderCode(c.code) };
+    _compiledFns.set(id, result);
+    return result;
+  }
+
+  function refreshFileData() {
+    fileDecoders = {};
+    fileRules = [];
+    if (window.HAR_DECODERS && typeof window.HAR_DECODERS === 'object') {
+      for (const [id, d] of Object.entries(window.HAR_DECODERS)) {
+        if (BUILTIN_DECODERS[id]) continue;
+        if (!d || typeof d.code !== 'string') continue;
+        fileDecoders[id] = { label: d.label || id, code: d.code, cdn: d.cdn || [] };
+      }
+    }
+    if (Array.isArray(window.HAR_RULES)) {
+      for (const r of window.HAR_RULES) {
+        if (!r || !r.pattern) continue;
+        fileRules.push({
+          pattern: String(r.pattern),
+          isRegex: !!r.isRegex,
+          reqDecoder: r.reqDecoder || 'raw',
+          resDecoder: r.resDecoder || 'raw',
+          keys: r.keys || null,
+        });
+      }
+    }
+    _compiledFns.clear();
+  }
+
+  function getAllDecoders() {
+    const all = { ...BUILTIN_DECODERS };
+    for (const [id, d] of Object.entries(fileDecoders)) {
+      const comp = getCompiledCustom(id);
+      all[id] = { label: `${d.label}`, run: comp.fn ? async (bytes, ctx) => {
+        await loadCdns(d.cdn);
+        return await comp.fn(bytes, ctx);
+      } : () => { throw new Error('文件算法编译失败: ' + comp.error); } };
+    }
+    for (const [id, d] of Object.entries(sessionDecoders)) {
+      if (BUILTIN_DECODERS[id]) continue;
+      const comp = getCompiledCustom(id);
+      all[id] = { label: `${d.label}（会话）`, run: comp.fn ? async (bytes, ctx) => {
+        await loadCdns(d.cdn);
+        return await comp.fn(bytes, ctx);
+      } : () => { throw new Error('会话算法编译失败: ' + comp.error); } };
+    }
+    return all;
+  }
+
+  function matchRule(url) {
+    for (const r of sessionRules) {
+      let hit = false;
+      if (r.isRegex) { try { hit = new RegExp(r.pattern).test(url); } catch { hit = false; } }
+      else hit = url.includes(r.pattern);
+      if (hit) return { match: r.pattern, reqDecoder: r.reqDecoder, resDecoder: r.resDecoder, keys: r.keys || null, note: r.isRegex ? `/${r.pattern}/` : r.pattern, _session: true };
+    }
+    for (const r of fileRules) {
+      let hit = false;
+      if (r.isRegex) { try { hit = new RegExp(r.pattern).test(url); } catch { hit = false; } }
+      else hit = url.includes(r.pattern);
+      if (hit) return { match: r.pattern, reqDecoder: r.reqDecoder, resDecoder: r.resDecoder, keys: r.keys || null, note: r.isRegex ? `/${r.pattern}/` : r.pattern };
+    }
+    return null;
+  }
+
+  refreshFileData();
+
+  // ================================================================
+  // 状态
+  // ================================================================
+  function makeFilter() { return { include: new Set(), exclude: new Set() }; }
+  const state = {
+    har: null, entries: [], currentIndex: -1,
+    decryptState: new Map(), marks: new Map(),
+    filters: { method: makeFilter(), type: makeFilter(), mime: makeFilter(), domain: makeFilter() },
+  };
+  const $ = (id) => document.getElementById(id);
+  const harInput = $('harInput'), stats = $('stats'), toggleFilterBtn = $('toggleFilterBtn');
+  const autoAllBtn = $('autoDecryptAllBtn'), exportBtn = $('exportBtn'), exportListBtn = $('exportListBtn');
+  const entryList = $('entryList'), detailPanel = $('detailPanel'), filterBar = $('filterBar');
+
+  const TYPE_LABELS = { js:'JS', xhr:'XHR', css:'CSS', html:'HTML', image:'图片', audio:'音频', video:'视频', font:'字体', text:'文本', other:'其它' };
+  const TYPE_ICONS = { image:'🖼', audio:'🔊', video:'🎬' };
+
+  function classifyEntry(entry) {
+    const url = (entry.request?.url || '').toLowerCase().split('?')[0];
+    const mime = (entry.response?.content?.mimeType || '').toLowerCase();
+    const ext = (url.match(/\.([a-z0-9]+)$/) || [])[1] || '';
+    if (mime.includes('javascript') || mime.includes('ecmascript') || ext === 'js' || ext === 'mjs' || ext === 'map') return 'js';
+    if (mime.includes('css') || ext === 'css') return 'css';
+    if (mime.includes('html') || ext === 'html' || ext === 'htm') return 'html';
+    if (mime.startsWith('image/') || /^(png|jpg|jpeg|gif|webp|svg|ico|bmp)$/.test(ext)) return 'image';
+    if (mime.startsWith('audio/') || /^(mp3|wav|ogg|m4a|flac|aac)$/.test(ext)) return 'audio';
+    if (mime.startsWith('video/') || /^(mp4|webm|mkv|avi|mov)$/.test(ext)) return 'video';
+    if (mime.includes('font') || /^(woff|woff2|ttf|otf|eot)$/.test(ext)) return 'font';
+    if (mime.includes('json') || mime.includes('xml')) return 'xhr';
+    const m = (entry.request?.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) return 'xhr';
+    if (mime.startsWith('text/') || ext === 'txt' || ext === 'csv' || mime === '') return 'text';
+    return 'other';
+  }
+  function getMimeKey(entry) { const r = (entry.response?.content?.mimeType || '').split(';')[0].trim().toLowerCase(); return r || '(无 MIME)'; }
+  function getDomain(entry) { try { return new URL(entry.request.url).hostname || '(无域名)'; } catch { return '(无效 URL)'; } }
+  function getEntryTime(entry) { const t = entry.startedDateTime; if (!t) return 0; const ms = new Date(t).getTime(); return isNaN(ms) ? 0 : ms; }
+
+  // ================================================================
+  // 过滤选项
+  // ================================================================
+  function buildFilterOptions() {
+    const counts = { method: new Map(), type: new Map(), mime: new Map(), domain: new Map() };
+    state.har.log.entries.forEach(entry => {
+      const m = (entry.request?.method || 'GET').toUpperCase();
+      counts.method.set(m, (counts.method.get(m) || 0) + 1);
+      const t = classifyEntry(entry); counts.type.set(t, (counts.type.get(t) || 0) + 1);
+      const mk = getMimeKey(entry); counts.mime.set(mk, (counts.mime.get(mk) || 0) + 1);
+      const d = getDomain(entry); counts.domain.set(d, (counts.domain.get(d) || 0) + 1);
+    });
+    const render = (gid, items) => {
+      const g = document.getElementById(gid); g.innerHTML = '';
+      const all = document.createElement('button');
+      all.className = 'tag-btn all-btn active'; all.dataset.value = '__ALL__'; all.textContent = '全部'; g.appendChild(all);
+      items.forEach(([v, c]) => {
+        const b = document.createElement('button');
+        b.className = 'tag-btn'; b.dataset.value = v;
+        b.textContent = `${gid === 'typeGroup' ? (TYPE_LABELS[v] || v) : v} (${c})`;
+        g.appendChild(b);
+      });
+    };
+    render('methodGroup', [...counts.method.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+    render('typeGroup', [...counts.type.entries()].sort((a, b) => b[1] - a[1]));
+    render('mimeGroup', [...counts.mime.entries()].sort((a, b) => b[1] - a[1]));
+    render('domainGroup', [...counts.domain.entries()].sort((a, b) => b[1] - a[1]));
+  }
+  function handleGroupClick(e, key) {
+    const btn = e.target.closest('.tag-btn'); if (!btn) return;
+    const group = btn.parentElement; const v = btn.dataset.value; const f = state.filters[key];
+    if (v === '__ALL__') { f.include.clear(); f.exclude.clear(); }
+    else if (f.include.has(v)) { f.include.delete(v); f.exclude.add(v); }
+    else if (f.exclude.has(v)) { f.exclude.delete(v); }
+    else { f.include.add(v); }
+    group.querySelectorAll('.tag-btn').forEach(b => {
+      const vv = b.dataset.value;
+      b.classList.remove('include', 'exclude', 'active');
+      if (vv === '__ALL__') { if (!f.include.size && !f.exclude.size) b.classList.add('active'); }
+      else if (f.include.has(vv)) b.classList.add('include');
+      else if (f.exclude.has(vv)) b.classList.add('exclude');
+    });
+    rebuildEntryList();
+  }
+  $('methodGroup').addEventListener('click', (e) => handleGroupClick(e, 'method'));
+  $('typeGroup').addEventListener('click', (e) => handleGroupClick(e, 'type'));
+  $('mimeGroup').addEventListener('click', (e) => handleGroupClick(e, 'mime'));
+  $('domainGroup').addEventListener('click', (e) => handleGroupClick(e, 'domain'));
+
+  function resetAllFilters() {
+    Object.values(state.filters).forEach(f => { f.include.clear(); f.exclude.clear(); });
+    ['method', 'type', 'mime', 'domain'].forEach(k => {
+      document.getElementById(k + 'Group').querySelectorAll('.tag-btn').forEach(b => {
+        b.classList.remove('include', 'exclude', 'active');
+        if (b.dataset.value === '__ALL__') b.classList.add('active');
+      });
+    });
+  }
+  $('resetFilterBtn').addEventListener('click', () => { resetAllFilters(); rebuildEntryList(); });
+
+  // ================================================================
+  // 加载 HAR
+  // ================================================================
+  harInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    try {
+      const har = JSON.parse(await file.text());
+      if (!har.log?.entries) throw new Error('不是有效的 HAR 文件');
+      state.har = har; state.decryptState.clear(); state.marks.clear(); state.currentIndex = -1;
+      resetAllFilters(); buildFilterOptions(); rebuildEntryList(); renderDetail();
+      toggleFilterBtn.disabled = false; autoAllBtn.disabled = false; exportBtn.disabled = false; exportListBtn.disabled = false;
+    } catch (err) { alert('读取 HAR 失败: ' + err.message); }
+  });
+
+  toggleFilterBtn.addEventListener('click', () => {
+    const collapsed = filterBar.classList.toggle('collapsed');
+    toggleFilterBtn.innerHTML = collapsed ? '<span class="icon">🔽</span>展开过滤' : '<span class="icon">🔼</span>收起过滤';
+    toggleFilterBtn.classList.toggle('toggle-active', !collapsed);
+  });
+
+  // ================================================================
+  // 过滤 + 排序
+  // ================================================================
+  function matchDim(value, f) {
+    if (f.include.size > 0 && !f.include.has(value)) return false;
+    if (f.exclude.has(value)) return false;
+    return true;
+  }
+  function rebuildEntryList() {
+    if (!state.har) return;
+    const filtered = [];
+    state.har.log.entries.forEach((entry, idx) => {
+      const url = entry.request?.url || '';
+      const method = (entry.request?.method || 'GET').toUpperCase();
+      const type = classifyEntry(entry); const mime = getMimeKey(entry); const domain = getDomain(entry);
+      if (!matchDim(method, state.filters.method)) return;
+      if (!matchDim(type, state.filters.type)) return;
+      if (!matchDim(mime, state.filters.mime)) return;
+      if (!matchDim(domain, state.filters.domain)) return;
+      filtered.push({ entry, originalIndex: idx, url, method, type, status: entry.response?.status || 0, time: getEntryTime(entry), rule: matchRule(url) });
+    });
+    filtered.sort((a, b) => b.time - a.time);
+    state.entries = filtered; renderList();
+    const total = state.har.log.entries.length; const shown = filtered.length;
+    stats.textContent = shown === total ? `共 ${total} 条` : `共 ${total} 条 / 显示 ${shown} 条（已过滤 ${total - shown} 条）`;
+  }
+
+  // ================================================================
+  // 右键菜单
+  // ================================================================
+  let ctxMenu = null;
+  function closeContextMenu() { if (ctxMenu) { ctxMenu.remove(); ctxMenu = null; } }
+  document.addEventListener('click', (e) => { if (ctxMenu && !ctxMenu.contains(e.target)) closeContextMenu(); });
+  document.addEventListener('scroll', closeContextMenu, true);
+  window.addEventListener('blur', closeContextMenu);
+
+  function showContextMenu(x, y, item) {
+    closeContextMenu();
+    const origIdx = item.originalIndex; const mark = state.marks.get(origIdx) || {};
+    const menu = document.createElement('div'); menu.className = 'context-menu';
+    const row = document.createElement('div'); row.className = 'ctx-row';
+    const lbl = document.createElement('span'); lbl.className = 'ctx-label'; lbl.textContent = '标记颜色'; row.appendChild(lbl);
+    ['yellow', 'red', 'green', 'blue', 'purple'].forEach(c => {
+      const dot = document.createElement('button');
+      dot.className = 'color-dot color-' + c + (mark.color === c ? ' selected' : '');
+      dot.title = c;
+      dot.addEventListener('click', () => { const m = state.marks.get(origIdx) || {}; m.color = c; state.marks.set(origIdx, m); renderList(); closeContextMenu(); });
+      row.appendChild(dot);
+    });
+    menu.appendChild(row);
+
+    const noteBtn = document.createElement('button'); noteBtn.className = 'ctx-btn';
+    noteBtn.textContent = mark.note ? '编辑备注…' : '添加备注…';
+    noteBtn.addEventListener('click', () => {
+      const cur = state.marks.get(origIdx)?.note || '';
+      const note = prompt('输入备注（留空清除）:', cur);
+      if (note === null) { closeContextMenu(); return; }
+      const m = state.marks.get(origIdx) || {};
+      if (note.trim()) m.note = note.trim(); else delete m.note;
+      if (!m.color && !m.note) state.marks.delete(origIdx); else state.marks.set(origIdx, m);
+      renderList(); closeContextMenu();
+    });
+    menu.appendChild(noteBtn);
+
+    if (mark.color) {
+      const b = document.createElement('button'); b.className = 'ctx-btn'; b.textContent = '清除颜色';
+      b.addEventListener('click', () => { const m = state.marks.get(origIdx); if (m) { delete m.color; if (!m.note) state.marks.delete(origIdx); } renderList(); closeContextMenu(); });
+      menu.appendChild(b);
+    }
+    if (mark.color || mark.note) {
+      const b = document.createElement('button'); b.className = 'ctx-btn danger'; b.textContent = '清除全部标记';
+      b.addEventListener('click', () => { state.marks.delete(origIdx); renderList(); closeContextMenu(); });
+      menu.appendChild(b);
+    }
+    document.body.appendChild(menu); ctxMenu = menu;
+    const rect = menu.getBoundingClientRect();
+    let fx = x, fy = y;
+    if (rect.right > window.innerWidth - 4) fx = window.innerWidth - rect.width - 4;
+    if (rect.bottom > window.innerHeight - 4) fy = window.innerHeight - rect.height - 4;
+    menu.style.left = fx + 'px'; menu.style.top = fy + 'px';
+  }
+
+  // ================================================================
+  // 列表
+  // ================================================================
+  const LONG_PRESS_MS = 600;
+  function renderList() {
+    if (!state.entries.length) { entryList.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(255,255,255,.35);">无匹配请求</div>'; return; }
+    entryList.innerHTML = '';
+    state.entries.forEach((item, i) => {
+      const div = document.createElement('div');
+      const mark = state.marks.get(item.originalIndex);
+      let cls = 'entry'; if (i === state.currentIndex) cls += ' active';
+      if (mark?.color) cls += ' marked-' + mark.color;
+      div.className = cls;
+      const sc = item.status >= 200 && item.status < 300 ? 'ok' : item.status >= 400 ? 'err' : '';
+      const icon = TYPE_ICONS[item.type] ? TYPE_ICONS[item.type] + ' ' : '';
+      div.innerHTML = `
+        <span class="method method-${escapeHtml(item.method)}">${escapeHtml(item.method)}</span>
+        <span class="type-tag">${icon}${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>
+        <span class="url" title="${escapeHtml(item.url)}">${escapeHtml(item.url)}</span>
+        <span class="status ${sc}">${item.status || ''}</span>
+        ${mark?.note ? `<div class="entry-note" title="${escapeHtml(mark.note)}">${escapeHtml(mark.note)}</div>` : ''}
+      `;
+      let pressTimer = null, longPressed = false;
+      const startPress = () => {
+        longPressed = false; div.classList.add('pressing');
+        pressTimer = setTimeout(async () => {
+          longPressed = true; div.classList.remove('pressing');
+          try { const code = await generateFetchCode(item.entry, item.rule); await navigator.clipboard.writeText(code); showToast('已复制 Node.js 代码', 'ok'); }
+          catch (err) { showToast('复制失败: ' + err.message, 'err'); }
+        }, LONG_PRESS_MS);
+      };
+      const cancelPress = () => { clearTimeout(pressTimer); div.classList.remove('pressing'); };
+      div.addEventListener('mousedown', startPress);
+      div.addEventListener('mouseup', cancelPress);
+      div.addEventListener('mouseleave', cancelPress);
+      div.addEventListener('touchstart', (e) => { e.preventDefault(); startPress(); }, { passive: false });
+      div.addEventListener('touchend', cancelPress);
+      div.addEventListener('touchcancel', cancelPress);
+      div.addEventListener('click', () => { if (longPressed) { longPressed = false; return; } state.currentIndex = i; renderList(); renderDetail(); });
+      div.addEventListener('contextmenu', (e) => { e.preventDefault(); showContextMenu(e.clientX, e.clientY, item); });
+      entryList.appendChild(div);
+    });
+  }
+
+  // ================================================================
+  // 媒体预览
+  // ================================================================
+  function buildMediaElement(entry, type) {
+    const c = entry.response?.content; if (!c?.text) return null;
+    const b64 = c.encoding === 'base64' ? c.text : bytesToBase64(harTextToBytes(c.text, c.encoding || ''));
+    const mime = getMimeKey(entry) === '(无 MIME)' ? guessMimeFromUrl(entry.request.url) : getMimeKey(entry);
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div class="media-meta">预览 · ${escapeHtml(mime)} · ${b64.length} 字符 base64</div>`;
+    const box = document.createElement('div'); box.className = 'media-preview';
+    if (type === 'image') { const img = document.createElement('img'); img.src = `data:${mime};base64,${b64}`; img.onerror = () => box.textContent = '⚠ 图片加载失败'; box.appendChild(img); }
+    else if (type === 'audio') { const a = document.createElement('audio'); a.controls = true; a.src = `data:${mime};base64,${b64}`; a.onerror = () => box.textContent = '⚠ 音频加载失败'; box.appendChild(a); }
+    else if (type === 'video') { const v = document.createElement('video'); v.controls = true; v.src = `data:${mime};base64,${b64}`; v.onerror = () => box.textContent = '⚠ 视频加载失败'; box.appendChild(v); }
+    else return null;
+    wrap.appendChild(box); return wrap;
+  }
+  function guessMimeFromUrl(url) {
+    const ext = (url.toLowerCase().split('?')[0].match(/\.([a-z0-9]+)$/) || [])[1];
+    const map = { png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',ico:'image/x-icon',bmp:'image/bmp',mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',m4a:'audio/mp4',flac:'audio/flac',aac:'audio/aac',mp4:'video/mp4',webm:'video/webm',mkv:'video/x-matroska' };
+    return map[ext] || 'application/octet-stream';
+  }
+
+  // ================================================================
+  // fetch 生成（Node.js）
+  // ================================================================
+  function extractRequestInfo(entry) {
+    const method = (entry.request.method || 'GET').toUpperCase();
+    const fullUrl = entry.request.url; const u = new URL(fullUrl);
+    const queryParams = {}; u.searchParams.forEach((v, k) => { queryParams[k] = v; });
+    const bodyText = entry.request.postData?.text || '';
+    let bodyParams = null;
+    if (bodyText) {
+      const t = bodyText.trim();
+      if (t.startsWith('{') || t.startsWith('[')) { try { bodyParams = JSON.parse(t); } catch {} }
+      if (!bodyParams) { const f = tryParseForm(bodyText); if (f) bodyParams = f; }
+    } else if (entry.request.postData?.params?.length) {
+      const obj = {}; entry.request.postData.params.forEach(p => { obj[p.name] = p.value; }); bodyParams = obj;
+    }
+    const headers = {}; (entry.request.headers || []).forEach(h => { headers[h.name] = h.value; });
+    return { method, fullUrl, u, queryParams, bodyText, bodyParams, headers };
+  }
+  function needsPako(rule) {
+    if (!rule || !rule.resDecoder) return false;
+    const id = rule.resDecoder;
+    if (['gzipFix', 'gunzip', 'inflate'].includes(id)) return true;
+    const c = sessionDecoders[id] || fileDecoders[id];
+    if (!c) return false;
+    return (c.code || '').includes('pako');
+  }
+  function getDecoderBody(id) {
+    if (BUILTIN_DECODERS[id]) return { type: 'builtin', label: BUILTIN_DECODERS[id].label };
+    const c = sessionDecoders[id] || fileDecoders[id];
+    if (c) return { type: 'custom', code: c.code, cdn: c.cdn, label: c.label };
+    return { type: 'missing', label: id };
+  }
+  async function generateFetchCode(entry, rule) {
+    const { method, fullUrl, u, queryParams, bodyText, bodyParams, headers } = extractRequestInfo(entry);
+    const baseUrl = u.origin + u.pathname;
+    const hasQuery = Object.keys(queryParams).length > 0;
+    const hasBody = !!bodyText;
+    const needPako = needsPako(rule);
+
+    const forbidden = /^(host|content-length|connection|transfer-encoding|upgrade|keep-alive|expect|proxy-)/i;
+    const cleanHeaders = {};
+    for (const [k, v] of Object.entries(headers)) if (!forbidden.test(k)) cleanHeaders[k] = v;
+
+    const L = [];
+    L.push(`// 来源: ${method} ${fullUrl}`);
+    L.push('// 运行环境: Node.js 18+（fetch / TextDecoder / atob / btoa / crypto.subtle 已内置）');
+    L.push('// 执行: node script.js');
+    if (needPako) L.push('// 依赖: npm install pako');
+    L.push('');
+    if (needPako) { L.push(`const pako = require('pako');`); L.push(''); }
+    L.push('(async () => {');
+
+    if (hasQuery) { L.push(`  const queryParams = ${JSON.stringify(queryParams, null, 2).split('\n').join('\n  ')};`); L.push(''); }
+    if (hasBody) {
+      if (bodyParams) L.push(`  const bodyParams = ${JSON.stringify(bodyParams, null, 2).split('\n').join('\n  ')};`);
+      else L.push(`  const rawBody = ${JSON.stringify(bodyText)};`);
+      L.push('');
+    }
+
+    if (hasQuery) {
+      L.push(`  const query = Object.entries(queryParams)`);
+      L.push(`    .map(([k, v]) => \`\${encodeURIComponent(k)}=\${encodeURIComponent(v)}\`)`);
+      L.push(`    .join('&');`);
+      L.push(`  const url = '${baseUrl}' + (query ? '?' + query : '');`);
+    } else { L.push(`  const url = '${baseUrl}';`); }
+    L.push('');
+
+    if (Object.keys(cleanHeaders).length) {
+      L.push(`  const headers = ${JSON.stringify(cleanHeaders, null, 2).split('\n').join('\n  ')};`);
+    } else { L.push(`  const headers = {};`); }
+    L.push('');
+
+    const opts = [`    method: '${method}'`, `    headers`];
+    if (hasBody) opts.push(bodyParams ? `    body: JSON.stringify(bodyParams)` : `    body: rawBody`);
+    L.push(`  const res = await fetch(url, {`);
+    L.push(opts.join(',\n'));
+    L.push(`  });`);
+    L.push('');
+    L.push(`  if (!res.ok) throw new Error(\`HTTP \${res.status} \${res.statusText}\`);`);
+    L.push('');
+
+    const useRule = rule && rule.resDecoder && rule.resDecoder !== 'raw';
+    if (useRule) {
+      const id = rule.resDecoder; const info = getDecoderBody(id);
+      L.push(`  // 域名命中规则「${rule.note || String(rule.match)}」，响应需解密（${id}）`);
+      L.push('');
+      if (info.type === 'custom' && info.code) {
+        if (info.cdn?.length) {
+          L.push('  // 依赖以下 CDN，请在 Node 环境 npm install：');
+          info.cdn.forEach(u => L.push(`  //   ${u}`));
+          L.push('');
+        }
+        L.push(`  const _decryptFn = ${info.code.split('\n').join('\n  ')};`);
+        L.push('');
+        if (rule.keys) {
+          const keysStr = JSON.stringify(rule.keys, null, 2).split('\n').join('\n  ');
+          L.push(`  const _ctx = { keys: ${keysStr} };`);
+        } else {
+          L.push(`  const _ctx = { keys: {} };`);
+        }
+        L.push('');
+        L.push(`  const buf = await res.arrayBuffer();`);
+        L.push(`  const data = await _decryptFn(new Uint8Array(buf), _ctx);`);
+      } else if (info.type === 'builtin') {
+        L.push(`  const buf = await res.arrayBuffer();`);
+        L.push(`  const _bytes = new Uint8Array(buf);`);
+        L.push('');
+        if (id === 'gzipFix') {
+          L.push(`  const t = new Uint8Array(_bytes);`);
+          L.push(`  if (t.length < 8) throw new Error('长度 < 8');`);
+          L.push(`  t[0]=0x1f;t[1]=0x8b;t[2]=0x08;t[3]=0x00;t[4]=0x00;t[5]=0x00;t[6]=0x00;t[7]=0x00;`);
+          L.push(`  const _raw = pako.ungzip(t);`);
+          L.push(`  const data = JSON.parse(new TextDecoder().decode(_raw));`);
+        } else if (id === 'gunzip') {
+          L.push(`  const _raw = pako.ungzip(_bytes);`);
+          L.push(`  const data = JSON.parse(new TextDecoder().decode(_raw));`);
+        } else if (id === 'inflate') {
+          L.push(`  const _raw = pako.inflate(_bytes);`);
+          L.push(`  const data = JSON.parse(new TextDecoder().decode(_raw));`);
+        } else if (id === 'base64ThenJson') {
+          L.push(`  const s = new TextDecoder().decode(_bytes).trim();`);
+          L.push(`  const bin = atob(s);`);
+          L.push(`  const out = new Uint8Array(bin.length);`);
+          L.push(`  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);`);
+          L.push(`  const data = JSON.parse(new TextDecoder().decode(out));`);
+        } else { L.push(`  const data = _bytes;`); }
+      } else {
+        L.push(`  const buf = await res.arrayBuffer();`);
+        L.push(`  const data = new Uint8Array(buf);`);
+      }
+    } else {
+      L.push(`  let data;`);
+      L.push(`  try { data = await res.clone().json(); }`);
+      L.push(`  catch { try { data = await res.clone().text(); } catch { data = await res.arrayBuffer(); } }`);
+    }
+    L.push('');
+    L.push(`  console.log(data);`);
+    L.push(`})().catch(err => { console.error(err); process.exit(1); });`);
+    return L.join('\n');
+  }
+
+  // ================================================================
+  // 解密执行
+  // ================================================================
+  async function runDecoder(id, bytes, ctx) {
+    const d = getAllDecoders()[id];
+    if (!d) throw new Error('未知解码方式: ' + id);
+    return await d.run(bytes, ctx);
+  }
+  async function runDecryptForItem(item, ds) {
+    const { entry, rule } = item;
+    const reqId = ds.reqDecoder || rule?.reqDecoder || 'raw';
+    const resId = ds.resDecoder || rule?.resDecoder || 'raw';
+    ds.reqDecoder = reqId; ds.resDecoder = resId;
+    const ctx = { rule, keys: rule?.keys || {} };
+    const jobs = [];
+    const rt = entry.request?.postData?.text;
+    if (rt) jobs.push((async () => {
+      try { const b = harTextToBytes(rt, entry.request.postData.encoding || ''); ds.reqResult = await runDecoder(reqId, b, ctx); ds.reqError = null; }
+      catch (e) { ds.reqError = e.message || String(e); ds.reqResult = null; }
+    })());
+    const st = entry.response?.content?.text;
+    if (st) jobs.push((async () => {
+      try { const b = harTextToBytes(st, entry.response.content.encoding || ''); ds.resResult = await runDecoder(resId, b, ctx); ds.resError = null; }
+      catch (e) { ds.resError = e.message || String(e); ds.resResult = null; }
+    })());
+    await Promise.all(jobs);
+  }
+  function getDecryptState(i) {
+    if (!state.decryptState.has(i)) state.decryptState.set(i, { reqDecoder: '', reqResult: null, reqError: null, resDecoder: '', resResult: null, resError: null, autoRan: false, loading: false });
+    return state.decryptState.get(i);
+  }
+
+  // ================================================================
+  // 详情
+  // ================================================================
+  function renderDetail() {
+    if (state.currentIndex < 0 || !state.entries[state.currentIndex]) { detailPanel.innerHTML = '<div class="empty">选择左侧请求查看详情</div>'; return; }
+    const item = state.entries[state.currentIndex];
+    const { entry, originalIndex, rule, type } = item;
+    const ds = getDecryptState(originalIndex);
+    const mark = state.marks.get(originalIndex);
+    const req = entry.request, res = entry.response;
+    const reqText = req?.postData?.text || '';
+    const resText = res?.content?.text || '';
+    const isMedia = type === 'image' || type === 'audio' || type === 'video';
+
+    if (!isMedia && !ds.autoRan && (reqText || resText)) {
+      ds.autoRan = true; ds.loading = true;
+      runDecryptForItem(item, ds).then(() => {
+        ds.loading = false;
+        if (state.entries[state.currentIndex]?.originalIndex === originalIndex) renderDetail();
+        renderList();
+      });
+    }
+
+    detailPanel.innerHTML = '';
+    const info = document.createElement('div');
+    info.innerHTML = `
+      <div class="field"><label>URL</label><div class="value">${escapeHtml(item.url)}</div></div>
+      <div class="field"><label>方法 / 类型 / 状态 / 时间</label><div class="value">
+        <span class="method method-${escapeHtml(item.method)}">${escapeHtml(item.method)}</span>
+        &nbsp;<span class="tag">${TYPE_ICONS[type] ? TYPE_ICONS[type] + ' ' : ''}${escapeHtml(TYPE_LABELS[type] || type)}</span>
+        &nbsp;${res?.status || ''} ${escapeHtml(res?.statusText || '')}
+        &nbsp;<span class="tag">${escapeHtml(formatTime(entry.startedDateTime))}</span>
+        ${rule ? `&nbsp;<span class="tag" style="background:rgba(217,119,6,.25);color:#ffcc80;">规则: ${escapeHtml(rule.note || String(rule.match))}${rule.keys ? ' · 含密钥' : ''}</span>` : ''}
+      </div></div>
+      ${mark?.note ? `<div class="field"><label>备注</label><div class="value" style="color:rgba(255,255,255,.65);font-style:italic;">${escapeHtml(mark.note)}</div></div>` : ''}
+    `;
+    detailPanel.appendChild(info);
+
+    if (reqText) {
+      detailPanel.appendChild(buildBodySection({
+        title: '请求体', originalText: reqText, encoding: req?.postData?.encoding || '',
+        decoderId: ds.reqDecoder || rule?.reqDecoder || 'raw',
+        result: ds.reqResult, error: ds.reqError, loading: ds.loading,
+        onDecrypt: async (id) => {
+          try { const b = harTextToBytes(reqText, req?.postData?.encoding || ''); ds.reqDecoder = id; ds.reqResult = await runDecoder(id, b, { rule, keys: rule?.keys || {} }); ds.reqError = null; }
+          catch (err) { ds.reqDecoder = id; ds.reqResult = null; ds.reqError = err.message || String(err); }
+          renderDetail(); renderList();
+        },
+      }));
+    } else {
+      const params = extractRequestParams(entry);
+      if (params) detailPanel.appendChild(buildParamsSection(params.title, params.obj));
+      else detailPanel.appendChild(buildEmptySection('请求体', '（无请求体，且 URL 中无查询参数）'));
+    }
+
+    if (isMedia) {
+      const media = buildMediaElement(entry, type);
+      if (media) {
+        const t = document.createElement('div'); t.className = 'section-title'; t.textContent = `响应体（${TYPE_LABELS[type]}预览）`;
+        detailPanel.appendChild(t); detailPanel.appendChild(media);
+        if (resText) {
+          const det = document.createElement('details'); det.className = 'original-block';
+          const sum = document.createElement('summary'); sum.textContent = `原始内容（${resText.length} 字符，点击展开）`;
+          det.appendChild(sum);
+          const pre = document.createElement('pre');
+          pre.textContent = resText.length > 2000 ? resText.slice(0, 2000) + `\n…（已截断）` : resText;
+          det.appendChild(pre); detailPanel.appendChild(det);
+        }
+      } else {
+        detailPanel.appendChild(buildBodySection({
+          title: '响应体', originalText: resText, encoding: res?.content?.encoding || '',
+          decoderId: 'raw', result: null, error: null, loading: false,
+          onDecrypt: async () => {},
+        }));
+      }
+    } else {
+      detailPanel.appendChild(buildBodySection({
+        title: '响应体', originalText: resText, encoding: res?.content?.encoding || '',
+        decoderId: ds.resDecoder || rule?.resDecoder || 'raw',
+        result: ds.resResult, error: ds.resError, loading: ds.loading,
+        onDecrypt: async (id) => {
+          try { const b = harTextToBytes(resText, res?.content?.encoding || ''); ds.resDecoder = id; ds.resResult = await runDecoder(id, b, { rule, keys: rule?.keys || {} }); ds.resError = null; }
+          catch (err) { ds.resDecoder = id; ds.resResult = null; ds.resError = err.message || String(err); }
+          renderDetail(); renderList();
+        },
+      }));
+    }
+  }
+  function extractRequestParams(entry) {
+    const hp = entry.request.postData?.params;
+    if (hp?.length) { const o = {}; hp.forEach(p => o[p.name] = p.value); return { title: '请求参数（HAR postData.params）', obj: o }; }
+    try { const u = new URL(entry.request.url); const o = {}; u.searchParams.forEach((v, k) => { o[k] = v; }); if (Object.keys(o).length) return { title: '请求参数（URL Query）', obj: o }; } catch {}
+    return null;
+  }
+  function buildParamsSection(title, obj) {
+    const w = document.createElement('div');
+    const t = document.createElement('div'); t.className = 'section-title'; t.textContent = title; w.appendChild(t);
+    const pre = document.createElement('pre'); pre.textContent = JSON.stringify(obj, null, 2); w.appendChild(pre);
+    return w;
+  }
+  function buildEmptySection(title, text) {
+    const w = document.createElement('div');
+    const t = document.createElement('div'); t.className = 'section-title'; t.textContent = title; w.appendChild(t);
+    const pre = document.createElement('pre'); pre.className = 'empty'; pre.textContent = text; w.appendChild(pre);
+    return w;
+  }
+  function buildBodySection({ title, originalText, encoding, decoderId, result, error, loading, onDecrypt }) {
+    const w = document.createElement('div');
+    const t = document.createElement('div'); t.className = 'section-title'; t.textContent = title + (originalText ? '' : '（无）'); w.appendChild(t);
+    if (!originalText) {
+      const p = document.createElement('pre'); p.className = 'empty'; p.textContent = '（无内容）'; w.appendChild(p); return w;
+    }
+    const tb = document.createElement('div'); tb.className = 'toolbar';
+    const sel = document.createElement('select');
+    const all = getAllDecoders();
+    for (const [id, d] of Object.entries(all)) {
+      const o = document.createElement('option'); o.value = id; o.textContent = d.label;
+      if (id === decoderId) o.selected = true; sel.appendChild(o);
+    }
+    sel.addEventListener('change', () => onDecrypt(sel.value));
+    tb.appendChild(sel);
+    if (encoding) { const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = `HAR 编码: ${encoding}`; tb.appendChild(tag); }
+    w.appendChild(tb);
+
+    const det = document.createElement('details'); det.className = 'original-block';
+    const sum = document.createElement('summary'); sum.textContent = `原始内容（${originalText.length} 字符，点击展开）`;
+    det.appendChild(sum);
+    const origPre = document.createElement('pre');
+    origPre.textContent = originalText.length > 5000 ? originalText.slice(0, 5000) + '\n…（已截断）' : originalText;
+    det.appendChild(origPre); w.appendChild(det);
+
+    const rl = document.createElement('div'); rl.className = 'label-mini'; rl.textContent = '解析结果:'; w.appendChild(rl);
+
+    if (loading) { const p = document.createElement('pre'); p.className = 'loading'; p.textContent = '正在自动解密…'; w.appendChild(p); }
+    else if (error) { const p = document.createElement('pre'); p.className = 'err'; p.textContent = '解密失败：' + error; w.appendChild(p); }
+    else if (result === null || result === undefined) { const p = document.createElement('pre'); p.className = 'empty'; p.textContent = '（无结果，可切换下拉框重试）'; w.appendChild(p); }
+    else {
+      const disp = bytesToDisplay(result);
+      const pre = document.createElement('pre'); pre.textContent = disp.text; w.appendChild(pre);
+      const btn = document.createElement('button'); btn.textContent = '复制结果';
+      btn.style.cssText = 'margin-top:8px;padding:5px 12px;border:1px solid rgba(90,170,230,.5);background:rgba(14,99,156,.3);color:#9ad0ff;border-radius:5px;cursor:pointer;font-size:12px;';
+      btn.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(disp.text); btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制结果', 1500); }
+        catch { btn.textContent = '复制失败'; }
+      });
+      w.appendChild(btn);
+    }
+    return w;
+  }
+
+  // ================================================================
+  // 批量解密
+  // ================================================================
+  autoAllBtn.addEventListener('click', async () => {
+    if (!state.har) return;
+    autoAllBtn.disabled = true; autoAllBtn.innerHTML = '<span class="icon">⏳</span>处理中…';
+    let total = 0;
+    for (let i = 0; i < state.har.log.entries.length; i++) {
+      const entry = state.har.log.entries[i]; const url = entry.request?.url || '';
+      const rule = matchRule(url); if (!rule) continue;
+      total++;
+      const ds = getDecryptState(i); ds.autoRan = true;
+      await runDecryptForItem({ entry, originalIndex: i, url, rule }, ds);
+    }
+    renderList(); renderDetail();
+    autoAllBtn.innerHTML = '<span class="icon">🔓</span>批量解密'; autoAllBtn.disabled = false;
+    alert(`命中规则 ${total} 条，已处理完成。`);
+  });
+
+  // ================================================================
+  // 导出 HAR
+  // ================================================================
+  function applyDecryptToHar(harObj) {
+    let count = 0;
+    for (const [origIdx, ds] of state.decryptState) {
+      const e = harObj.log.entries[origIdx]; if (!e) continue;
+      if (ds.reqResult != null && e.request?.postData) { writeResultBack(e.request.postData, ds.reqResult); count++; }
+      if (ds.resResult != null && e.response?.content) { writeResultBack(e.response.content, ds.resResult); count++; }
+    }
+    return count;
+  }
+  exportBtn.addEventListener('click', () => {
+    if (!state.har) return;
+    const outHar = JSON.parse(JSON.stringify(state.har));
+    const count = applyDecryptToHar(outHar);
+    const blob = new Blob([JSON.stringify(outHar, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'capture.decrypted.har'; a.click(); URL.revokeObjectURL(a.href);
+    if (count === 0) alert('没有可写回的解密结果。');
+  });
+  exportListBtn.addEventListener('click', () => {
+    if (!state.har) return;
+    if (!state.entries.length) { alert('当前过滤无结果，无法导出。'); return; }
+    const outHar = JSON.parse(JSON.stringify(state.har));
+    applyDecryptToHar(outHar);
+    const keep = new Set(state.entries.map(e => e.originalIndex));
+    const kept = keep.size;
+    outHar.log.entries = outHar.log.entries.filter((_, i) => keep.has(i));
+    const blob = new Blob([JSON.stringify(outHar, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `capture.filtered-${Date.now()}.har`; a.click(); URL.revokeObjectURL(a.href);
+    showToast(`已导出 ${kept} 条请求`, 'ok');
+  });
+  function writeResultBack(c, r) {
+    if (typeof r === 'string') { c.text = r; delete c.encoding; c.mimeType = 'application/json'; }
+    else if (r instanceof Uint8Array) { c.text = bytesToBase64(r); c.encoding = 'base64'; }
+    else if (r instanceof ArrayBuffer) { c.text = bytesToBase64(new Uint8Array(r)); c.encoding = 'base64'; }
+    else { c.text = JSON.stringify(r, null, 2); delete c.encoding; c.mimeType = 'application/json'; }
+    if ('size' in c) c.size = new Blob([c.text]).size;
+  }
+
+  // ================================================================
+  // 配置模态框
+  // ================================================================
+  const configModal = $('configModal'), modalCloseBtn = $('modalCloseBtn');
+  const addDecoderBtn = $('addDecoderBtn'), addRuleBtn = $('addRuleBtn');
+  const decoderList = $('decoderList'), ruleList = $('ruleList');
+  const decoderForm = $('decoderForm'), ruleForm = $('ruleForm');
+  const decoderFormError = $('decoderFormError'), ruleFormError = $('ruleFormError');
+  const decoderIdInput = $('decoderIdInput'), decoderLabelInput = $('decoderLabelInput');
+  const decoderCdnInput = $('decoderCdnInput'), decoderCodeInput = $('decoderCodeInput');
+  const decoderTemplateSelect = $('decoderTemplateSelect');
+  const saveDecoderBtn = $('saveDecoderBtn'), cancelDecoderBtn = $('cancelDecoderBtn');
+  const rulePatternInput = $('rulePatternInput'), ruleTypeSelect = $('ruleTypeSelect');
+  const ruleReqDecoderSelect = $('ruleReqDecoderSelect'), ruleResDecoderSelect = $('ruleResDecoderSelect');
+  const ruleKeysInput = $('ruleKeysInput');
+  const saveRuleBtn = $('saveRuleBtn'), cancelRuleBtn = $('cancelRuleBtn');
+  const exportOutput = $('exportOutput');
+
+  let editingDecoderId = null, editingRuleIndex = -1;
+
+  function openModal() {
+    configModal.style.display = 'flex';
+    switchTab('decoders');
+    renderDecoderList(); renderRuleList();
+    hideDecoderForm(); hideRuleForm();
+    fillDecoderSelects();
+    fillTemplateSelect();
+  }
+  function closeModal() { configModal.style.display = 'none'; }
+  $('configBtn').addEventListener('click', openModal);
+  modalCloseBtn.addEventListener('click', closeModal);
+  configModal.addEventListener('click', (e) => { if (e.target === configModal) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && configModal.style.display === 'flex') closeModal(); });
+
+  document.querySelectorAll('.modal-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+  function switchTab(name) {
+    document.querySelectorAll('.modal-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+    if (name === 'rules') fillDecoderSelects();
+  }
+
+  // 模板下拉
+  function fillTemplateSelect() {
+    const cur = decoderTemplateSelect.value;
+    decoderTemplateSelect.innerHTML = '<option value="">-- 手动填写 --</option>';
+    const templates = window.HAR_TEMPLATES || {};
+    for (const [id, t] of Object.entries(templates)) {
+      const o = document.createElement('option');
+      o.value = id; o.textContent = t.label || id;
+      decoderTemplateSelect.appendChild(o);
+    }
+    decoderTemplateSelect.value = cur;
+  }
+  decoderTemplateSelect.addEventListener('change', (e) => {
+    const id = e.target.value;
+    if (!id) return;
+    const t = (window.HAR_TEMPLATES || {})[id];
+    if (!t) return;
+    decoderCodeInput.value = t.code;
+    if (!decoderLabelInput.value.trim()) decoderLabelInput.value = t.label || id;
+  });
+
+  // 重载文件
+  function reloadFiles() {
+    const s1 = document.createElement('script');
+    s1.src = './decoders.js?' + Date.now();
+    const s2 = document.createElement('script');
+    s2.src = './rules.js?' + Date.now();
+    s1.onload = () => {
+      document.head.appendChild(s2);
+      s2.onload = () => {
+        refreshFileData();
+        renderDecoderList(); renderRuleList(); fillDecoderSelects(); fillTemplateSelect();
+        if (state.har) rebuildEntryList();
+        showToast('文件已重载', 'ok');
+      };
+    };
+    document.head.appendChild(s1);
+  }
+  $('reloadFilesBtn').addEventListener('click', reloadFiles);
+  $('reloadFilesBtn2').addEventListener('click', reloadFiles);
+
+  // 算法列表
+  function renderDecoderList() {
+    decoderList.innerHTML = '';
+    const fileIds = Object.keys(fileDecoders);
+    const sessionIds = Object.keys(sessionDecoders).filter(id => !fileDecoders[id]);
+    if (!fileIds.length && !sessionIds.length) {
+      const e = document.createElement('div'); e.className = 'config-empty';
+      e.textContent = 'decoders.js 中暂无算法。可点「+ 会话内添加算法」临时试，或直接在 decoders.js 里编辑。';
+      decoderList.appendChild(e);
+      return;
+    }
+    const makeItem = (id, src) => {
+      const d = src === 'file' ? fileDecoders[id] : sessionDecoders[id];
+      const item = document.createElement('div'); item.className = 'config-item';
+      const comp = getCompiledCustom(id);
+      const errTag = comp.error ? `<span class="badge-error">编译错误</span>` : '';
+      const cdnCount = (d.cdn || []).length;
+      const cdnTag = cdnCount ? `<span class="badge-file" style="background:rgba(255,152,0,.2);color:#ffcc80;">CDN ×${cdnCount}</span>` : '';
+      const srcTag = src === 'file' ? '<span class="badge-file">文件</span>' : '<span class="badge-session">会话</span>';
+      const preview = (d.code || '').split('\n')[0].slice(0, 80);
+      item.innerHTML = `
+        <div class="config-item-main">
+          <div class="config-item-title">${escapeHtml(d.label)} <span class="config-item-id">${escapeHtml(id)}</span>${srcTag}${errTag}${cdnTag}</div>
+          <div class="config-item-preview">${escapeHtml(preview)}${d.code?.includes('\n') ? '…' : ''}</div>
+        </div>
+        ${src === 'session' ? `<div class="config-item-actions">
+          <button data-action="edit">编辑</button>
+          <button data-action="delete" class="danger">删除</button>
+        </div>` : ''}
+      `;
+      if (src === 'session') {
+        item.querySelector('[data-action="edit"]').addEventListener('click', () => editDecoder(id));
+        item.querySelector('[data-action="delete"]').addEventListener('click', () => deleteDecoder(id));
+      }
+      decoderList.appendChild(item);
+    };
+    fileIds.forEach(id => makeItem(id, 'file'));
+    sessionIds.forEach(id => makeItem(id, 'session'));
+  }
+  function editDecoder(id) {
+    editingDecoderId = id;
+    const d = sessionDecoders[id];
+    decoderIdInput.value = id; decoderIdInput.disabled = true;
+    decoderLabelInput.value = d.label || '';
+    decoderCdnInput.value = (d.cdn || []).join(', ');
+    decoderCodeInput.value = d.code || '';
+    fillTemplateSelect();
+    decoderFormError.style.display = 'none'; decoderForm.style.display = 'block';
+    addDecoderBtn.style.display = 'none';
+  }
+  function deleteDecoder(id) {
+    if (!confirm(`删除会话内算法「${id}」？`)) return;
+    delete sessionDecoders[id]; _compiledFns.delete(id);
+    renderDecoderList(); refreshAll();
+  }
+  function hideDecoderForm() {
+    decoderForm.style.display = 'none'; decoderIdInput.disabled = false;
+    editingDecoderId = null; addDecoderBtn.style.display = ''; decoderFormError.style.display = 'none';
+  }
+  function showDecoderError(msg) { decoderFormError.textContent = msg; decoderFormError.style.display = 'block'; }
+
+  addDecoderBtn.addEventListener('click', () => {
+    editingDecoderId = null;
+    decoderIdInput.value = ''; decoderIdInput.disabled = false;
+    decoderLabelInput.value = ''; decoderCdnInput.value = ''; decoderCodeInput.value = '';
+    fillTemplateSelect();
+    decoderTemplateSelect.value = '';
+    decoderFormError.style.display = 'none'; decoderForm.style.display = 'block';
+    addDecoderBtn.style.display = 'none'; decoderIdInput.focus();
+  });
+  cancelDecoderBtn.addEventListener('click', hideDecoderForm);
+
+  saveDecoderBtn.addEventListener('click', () => {
+    const id = decoderIdInput.value.trim();
+    const label = decoderLabelInput.value.trim();
+    const cdn = decoderCdnInput.value.split(',').map(s => s.trim()).filter(Boolean);
+    const code = decoderCodeInput.value;
+    if (!id) return showDecoderError('请填写 ID');
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(id)) return showDecoderError('ID 必须是合法 JS 标识符');
+    if (!editingDecoderId && (BUILTIN_DECODERS[id] || fileDecoders[id] || sessionDecoders[id])) return showDecoderError(`"${id}" 已存在`);
+    if (!label) return showDecoderError('请填写名称');
+    if (!code.trim()) return showDecoderError('请填写代码');
+    const comp = compileDecoderCode(code);
+    if (comp.error) return showDecoderError('代码编译失败：\n' + comp.error);
+    sessionDecoders[id] = { label, code, cdn };
+    _compiledFns.delete(id);
+    renderDecoderList(); hideDecoderForm(); refreshAll();
+    showToast(`会话算法「${label}」已添加`, 'ok');
+  });
+
+  // 规则列表
+  function renderRuleList() {
+    ruleList.innerHTML = '';
+    const hasAny = fileRules.length || sessionRules.length;
+    if (!hasAny) {
+      const e = document.createElement('div'); e.className = 'config-empty';
+      e.textContent = 'rules.js 中暂无规则。可点「+ 会话内添加规则」临时试，或直接在 rules.js 里编辑。'; ruleList.appendChild(e); return;
+    }
+    const makeItem = (r, idx, src) => {
+      const item = document.createElement('div'); item.className = 'config-item';
+      const typeLabel = r.isRegex ? '正则' : '包含';
+      const srcTag = src === 'file' ? '<span class="badge-file">文件</span>' : '<span class="badge-session">会话</span>';
+      const keysTag = r.keys ? '<span class="badge-keys">含密钥</span>' : '';
+      item.innerHTML = `
+        <div class="config-item-main">
+          <div class="config-item-title">${escapeHtml(r.pattern)} <span class="config-item-id">${escapeHtml(typeLabel)}</span>${srcTag}${keysTag}</div>
+          <div class="config-item-preview">请求: <code>${escapeHtml(r.reqDecoder)}</code> · 响应: <code>${escapeHtml(r.resDecoder)}</code></div>
+        </div>
+        ${src === 'session' ? `<div class="config-item-actions">
+          <button data-action="edit">编辑</button>
+          <button data-action="delete" class="danger">删除</button>
+        </div>` : ''}
+      `;
+      if (src === 'session') {
+        item.querySelector('[data-action="edit"]').addEventListener('click', () => editRule(idx));
+        item.querySelector('[data-action="delete"]').addEventListener('click', () => deleteRule(idx));
+      }
+      ruleList.appendChild(item);
+    };
+    fileRules.forEach(r => makeItem(r, -1, 'file'));
+    sessionRules.forEach((r, i) => makeItem(r, i, 'session'));
+  }
+  function editRule(idx) {
+    editingRuleIndex = idx;
+    const r = sessionRules[idx];
+    rulePatternInput.value = r.pattern;
+    ruleTypeSelect.value = r.isRegex ? 'regex' : 'string';
+    fillDecoderSelects();
+    ruleReqDecoderSelect.value = r.reqDecoder || 'raw';
+    ruleResDecoderSelect.value = r.resDecoder || 'raw';
+    ruleKeysInput.value = r.keys ? JSON.stringify(r.keys, null, 2) : '';
+    ruleFormError.style.display = 'none'; ruleForm.style.display = 'block';
+    addRuleBtn.style.display = 'none';
+  }
+  function deleteRule(idx) {
+    if (!confirm('删除此会话规则？')) return;
+    sessionRules.splice(idx, 1); renderRuleList();
+    if (state.har) rebuildEntryList();
+  }
+  function hideRuleForm() {
+    ruleForm.style.display = 'none'; editingRuleIndex = -1;
+    addRuleBtn.style.display = ''; ruleFormError.style.display = 'none';
+  }
+  function showRuleError(msg) { ruleFormError.textContent = msg; ruleFormError.style.display = 'block'; }
+
+  function fillDecoderSelects() {
+    const all = getAllDecoders();
+    const fill = (sel, cur) => {
+      sel.innerHTML = '';
+      for (const [id, d] of Object.entries(all)) {
+        const o = document.createElement('option'); o.value = id; o.textContent = d.label;
+        if (id === cur) o.selected = true; sel.appendChild(o);
+      }
+    };
+    const rq = ruleReqDecoderSelect.value || 'raw'; const rs = ruleResDecoderSelect.value || 'raw';
+    fill(ruleReqDecoderSelect, rq); fill(ruleResDecoderSelect, rs);
+  }
+  addRuleBtn.addEventListener('click', () => {
+    editingRuleIndex = -1;
+    rulePatternInput.value = ''; ruleTypeSelect.value = 'string';
+    fillDecoderSelects();
+    ruleReqDecoderSelect.value = 'raw'; ruleResDecoderSelect.value = 'raw';
+    ruleKeysInput.value = '';
+    ruleFormError.style.display = 'none'; ruleForm.style.display = 'block';
+    addRuleBtn.style.display = 'none'; rulePatternInput.focus();
+  });
+  cancelRuleBtn.addEventListener('click', hideRuleForm);
+  saveRuleBtn.addEventListener('click', () => {
+    const pattern = rulePatternInput.value.trim();
+    const isRegex = ruleTypeSelect.value === 'regex';
+    const reqDecoder = ruleReqDecoderSelect.value;
+    const resDecoder = ruleResDecoderSelect.value;
+    if (!pattern) return showRuleError('请填写域名模式');
+    if (isRegex) { try { new RegExp(pattern); } catch (e) { return showRuleError('正则无效：' + e.message); } }
+    if (!reqDecoder && !resDecoder) return showRuleError('至少选择一个算法');
+
+    let keys = null;
+    const keysStr = ruleKeysInput.value.trim();
+    if (keysStr) {
+      try { keys = JSON.parse(keysStr); }
+      catch (e) { return showRuleError('密钥 JSON 无效：' + e.message); }
+    }
+    const rule = { pattern, isRegex, reqDecoder, resDecoder };
+    if (keys) rule.keys = keys;
+    if (editingRuleIndex >= 0) sessionRules[editingRuleIndex] = rule; else sessionRules.push(rule);
+    renderRuleList(); hideRuleForm();
+    if (state.har) rebuildEntryList();
+    showToast('会话规则已添加', 'ok');
+  });
+
+  function refreshAll() {
+    if (state.har) { rebuildEntryList(); renderDetail(); }
+    if (configModal.style.display === 'flex') fillDecoderSelects();
+  }
+
+  // 导出：decoders.js 片段（整块）
+  function genExportDecoders() {
+    if (!Object.keys(sessionDecoders).length) {
+      exportOutput.value = '// 会话内暂无算法';
+      return;
+    }
+    const lines = ['window.HAR_DECODERS = {'];
+    for (const [id, d] of Object.entries(sessionDecoders)) {
+      lines.push('');
+      lines.push(`  ${id}: {`);
+      lines.push(`    label: ${JSON.stringify(d.label)},`);
+      lines.push(`    cdn: ${JSON.stringify(d.cdn || [])},`);
+      lines.push(`    code: \`${(d.code || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${')}\``);
+      lines.push(`  },`);
+    }
+    lines.push('');
+    lines.push('};');
+    exportOutput.value = lines.join('\n');
+  }
+
+  // 导出：rules.js 片段（纯数组）
+  function genExportRules() {
+    if (!sessionRules.length) {
+      exportOutput.value = '// 会话内暂无规则';
+      return;
+    }
+    const lines = ['['];
+    sessionRules.forEach(r => {
+      lines.push('  {');
+      lines.push(`    pattern: ${JSON.stringify(r.pattern)},`);
+      lines.push(`    isRegex: ${r.isRegex},`);
+      lines.push(`    reqDecoder: ${JSON.stringify(r.reqDecoder)},`);
+      const parts = [`    resDecoder: ${JSON.stringify(r.resDecoder)}`];
+      if (r.keys) {
+        const keysStr = JSON.stringify(r.keys, null, 2).split('\n').join('\n    ');
+        parts.push(`    keys: ${keysStr}`);
+      }
+      lines.push(parts.join(',\n'));
+      lines.push('  },');
+    });
+    lines.push(']');
+    exportOutput.value = lines.join('\n');
+  }
+
+  $('exportDecodersBtn').addEventListener('click', genExportDecoders);
+  $('exportRulesBtn').addEventListener('click', genExportRules);
+  $('copyExportBtn').addEventListener('click', async () => {
+    if (!exportOutput.value) return showToast('请先点击上方按钮生成内容', 'err');
+    try { await navigator.clipboard.writeText(exportOutput.value); showToast('已复制', 'ok'); }
+    catch { showToast('复制失败', 'err'); }
+  });
+
+  // 初始化
+  toggleFilterBtn.disabled = true;
+  autoAllBtn.disabled = true;
+  exportBtn.disabled = true;
+  exportListBtn.disabled = true;
+  fillTemplateSelect();
+  </script>
+</body>
+</html>
